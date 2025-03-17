@@ -10,7 +10,7 @@ export interface Payment {
   payment_type: PaymentType;
   transaction_amount: number;
   status: PaymentStatus;
-  responses: any | null;
+  responses: Record<string, unknown> | null;
   created_at: number;
   updated_at: number;
 } 

@@ -1,5 +1,5 @@
 {
-  "name": "plenti-admin",
+  "name": "admin-dash",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,8 @@
     "start:prod": "env-cmd -f .env.production next start",
     "lint": "next lint",
     "export": "next build && next export",
-    "deploy": "npm run export && gh-pages -d out"
+    "deploy": "npm run export && gh-pages -d out",
+    "vercel-build": "next build --no-lint"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

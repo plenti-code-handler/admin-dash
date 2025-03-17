@@ -1,13 +1,18 @@
 import { config, buildApiUrl } from '@/config';
 
+interface ApiResponse<T> {
+  response: T;
+  total_response?: number;
+}
+
 interface ApiOptions {
   token?: string;
   params?: Record<string, string | number | boolean>;
-  data?: any;
+  data?: unknown;
 }
 
 export const api = {
-  get: async (path: string, { token, params }: ApiOptions = {}) => {
+  get: async <T>(path: string, { token, params }: ApiOptions = {}): Promise<ApiResponse<T>> => {
     const url = buildApiUrl(path, params);
     
     const headers: HeadersInit = {
@@ -28,7 +33,7 @@ export const api = {
     return response.json();
   },
 
-  post: async (path: string, { token, data }: ApiOptions = {}) => {
+  post: async <T>(path: string, { token, data }: ApiOptions = {}): Promise<ApiResponse<T>> => {
     const url = buildApiUrl(path);
     
     const headers: HeadersInit = {

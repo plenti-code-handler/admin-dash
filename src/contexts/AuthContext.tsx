@@ -4,10 +4,17 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any | null;
-  login: (token: string) => void;
+  user: User | null;
+  login: (token: string, userData: User) => void;
   logout: () => void;
   loading: boolean;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,7 +27,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -32,10 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = (token: string) => {
+  const login = (token: string, userData: User) => {
     document.cookie = `token=${token}; path=/`;
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
+    setUser(userData);
     router.push('/dashboard');
   };
 

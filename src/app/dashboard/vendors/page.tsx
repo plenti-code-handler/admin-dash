@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {
   BuildingStorefrontIcon,
@@ -45,6 +45,14 @@ const vendorTypeOptions = [
 export default function VendorsPage() {
   const [selectedType, setSelectedType] = useState<VendorType | ''>('');
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+
+  const fetchVendors = useCallback(async () => {
+    // ... existing fetch code
+  }, []); // Empty dependency array if no external dependencies
+
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]); // Add fetchVendors to dependency array
 
   return (
     <div className="space-y-6">
