@@ -10,6 +10,11 @@ interface CouponTableProps {
   onDelete: (couponId: string) => void;
 }
 
+interface CouponApiResponse {
+  response: Coupon[];
+  total_response: number;
+}
+
 export default function CouponTable({ onDelete }: CouponTableProps) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +32,8 @@ export default function CouponTable({ onDelete }: CouponTableProps) {
         throw new Error('No auth token found');
       }
 
-      const { response: couponsData } = await api.get<Coupon[]>('/v1/superuser/coupon', { token });
-      setCoupons(couponsData);
+      const data = await api.get<CouponApiResponse>('/v1/superuser/coupon', { token });
+      setCoupons(data.response);
     } catch (error) {
       logger.error('Error fetching coupons:', error);
     } finally {

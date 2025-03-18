@@ -11,7 +11,8 @@ const configs: Record<Environment, Config> = {
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   },
   production: {
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://api.plenti.co.in',
+    // Force HTTPS in production
+    apiBaseUrl: (process.env.NEXT_PUBLIC_API_URL || 'https://api.plenti.co.in').replace('http://', 'https://'),
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   }
 };
@@ -22,7 +23,11 @@ export const config: Config = configs[environment];
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string, params?: Record<string, string | number | boolean>) => {
-  const baseURL = config.apiBaseUrl;
+  // Ensure we're using HTTPS in production
+  const baseURL = environment === 'production' 
+    ? config.apiBaseUrl.replace('http://', 'https://')
+    : config.apiBaseUrl;
+    
   const url = new URL(path, baseURL);
   
   if (params) {
