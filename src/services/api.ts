@@ -12,7 +12,7 @@ interface ApiOptions {
 }
 
 export const api = {
-  get: async <T>(path: string, { token, params }: ApiOptions = {}): Promise<ApiResponse<T>> => {
+  get: async <T>(path: string, { token, params }: ApiOptions = {}): Promise<T> => {
     const url = buildApiUrl(path, params);
     
     const headers: HeadersInit = {
@@ -30,7 +30,7 @@ export const api = {
       throw new Error(error.detail || 'API request failed');
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   },
 
   post: async <T>(path: string, { token, data }: ApiOptions = {}): Promise<ApiResponse<T>> => {
