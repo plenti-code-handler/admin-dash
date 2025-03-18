@@ -22,12 +22,13 @@ export const config: Config = configs[environment];
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string, params?: Record<string, string | number | boolean>) => {
-  const url = new URL(`${config.apiBaseUrl}${path}`);
+  const baseURL = config.apiBaseUrl;
+  const url = new URL(path, baseURL);
   
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        url.searchParams.append(key, String(value));
+        url.searchParams.append(key, value.toString());
       }
     });
   }
