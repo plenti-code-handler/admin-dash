@@ -27,16 +27,8 @@ export default function CouponTable({ onDelete }: CouponTableProps) {
         throw new Error('No auth token found');
       }
 
-      const url = buildApiUrl('/v1/superuser/coupon');
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await api.get('/v1/superuser/coupon', { token });
-      setCoupons(data.response);
+      const { response: couponsData } = await api.get<Coupon[]>('/v1/superuser/coupon', { token });
+      setCoupons(couponsData);
     } catch (error) {
       logger.error('Error fetching coupons:', error);
     } finally {
