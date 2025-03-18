@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildApiUrl } from '@/config';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,9 +25,10 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const url = new URL('http://localhost:8000/v1/superuser/me/login');
-      url.searchParams.append('email', email);
-      url.searchParams.append('password', password);
+      const url = buildApiUrl('/v1/superuser/me/login', {
+        email,
+        password
+      });
 
       const response = await fetch(url, {
         method: 'GET',
@@ -38,7 +40,12 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok && data.access_token) {
-        login(data.access_token);
+        login(data.access_token, {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role
+        });
       } else {
         setError(data.detail || 'Login failed');
       }

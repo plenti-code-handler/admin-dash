@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import type { User } from '@/types/user';
+import { buildApiUrl } from '@/config';
 
 interface UserTableProps {
   onUserSelect: (user: User) => void;
@@ -70,7 +71,7 @@ export default function UserTable({ onUserSelect, searchQuery }: UserTableProps)
   const handleNextPage = () => {
     setCurrentPage(currentPage => {
       const nextPage = currentPage + 1;
-      logger.log('Moving to next page:', nextPage);
+      logger.info('Moving to next page:', nextPage);
       return nextPage;
     });
   };
@@ -79,7 +80,7 @@ export default function UserTable({ onUserSelect, searchQuery }: UserTableProps)
   const handlePrevPage = () => {
     setCurrentPage(currentPage => {
       const prevPage = Math.max(1, currentPage - 1);
-      logger.log('Moving to previous page:', prevPage);
+      logger.info('Moving to previous page:', prevPage);
       return prevPage;
     });
   };
@@ -93,26 +94,24 @@ export default function UserTable({ onUserSelect, searchQuery }: UserTableProps)
         throw new Error('No authentication token found');
       }
 
-      // Calculate skip based on current page (page starts from 1)
-      const skip = (currentPage - 1) * itemsPerPage;
-      logger.log('Fetching users with skip:', skip, 'page:', currentPage);
+      const url = buildApiUrl('/v1/superuser/user/get', {
+        skip: (currentPage - 1) * itemsPerPage,
+        limit: itemsPerPage
+      });
 
-      const response = await fetch(
-        `http://localhost:8000/v1/superuser/user/get?skip=${skip}&limit=${itemsPerPage}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       console.log(response);
       if (!response.ok) {
         throw new Error('Failed to fetch users');
       }
 
       const data = await response.json();
-      logger.log('Users response:', data);
+      logger.info('Users response:', data);
 
       const transformedUsers = data.response.map((user: any) => ({
         id: formatValue(user.id, 'N/A'),

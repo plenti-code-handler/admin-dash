@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import type { Order } from '@/types/order';
+import { buildApiUrl } from '@/config';
 
 interface OrderDetailsProps {
   order: Order;
@@ -41,7 +42,11 @@ export default function OrderDetails({ order, onClose }: OrderDetailsProps) {
         throw new Error('No auth token found');
       }
 
-      const response = await fetch(`http://localhost:8000/v1/superuser/vendor/get?vendor_id=${order.vendor_id}`, {
+      const url = buildApiUrl('/v1/superuser/vendor/get', {
+        vendor_id: order.vendor_id
+      });
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

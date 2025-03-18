@@ -10,6 +10,11 @@ interface VendorTableProps {
   onVendorSelect: (vendor: Vendor) => void;
 }
 
+interface ApiResponse {
+  response: Vendor[];
+  total_response: number;
+}
+
 export default function VendorTable({ vendorType, onVendorSelect }: VendorTableProps) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,20 +48,20 @@ export default function VendorTable({ vendorType, onVendorSelect }: VendorTableP
         throw new Error('No auth token found');
       }
 
-      const skip = (currentPage - 1) * itemsPerPage;
-      
-      const data = await api.get('/v1/superuser/vendor/get', {
+      const data = await api.get<ApiResponse>('/v1/superuser/vendor/get', {
         token,
         params: {
-          skip,
+          skip: (currentPage - 1) * itemsPerPage,
           limit: itemsPerPage,
           ...(vendorType ? { vendor_type: vendorType } : {})
         }
       });
 
-      setVendors(data.response);
-      setTotalItems(data.total_response);
-      setTotalPages(Math.ceil(data.total_response / itemsPerPage));
+      if (data && data.response) {
+        setVendors(data.response);
+        setTotalItems(data.total_response || 0);
+        setTotalPages(Math.ceil((data.total_response || 0) / itemsPerPage));
+      }
     } catch (error) {
       logger.error('Error fetching vendors:', error);
       setVendors([]);

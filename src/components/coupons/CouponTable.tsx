@@ -4,6 +4,7 @@ import { TrashIcon, TagIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import type { Coupon } from '@/types/coupon';
+import { buildApiUrl } from '@/config';
 
 interface CouponTableProps {
   onDelete: (couponId: string) => void;
@@ -25,6 +26,14 @@ export default function CouponTable({ onDelete }: CouponTableProps) {
       if (!token) {
         throw new Error('No auth token found');
       }
+
+      const url = buildApiUrl('/v1/superuser/coupon');
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
 
       const data = await api.get('/v1/superuser/coupon', { token });
       setCoupons(data.response);

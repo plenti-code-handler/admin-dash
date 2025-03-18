@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '@/types/order';
+import { buildApiUrl } from '@/config';
 
 interface OrderTableProps {
   orderStatus: OrderStatus | '';
@@ -54,24 +55,15 @@ export default function OrderTable({ orderStatus, onOrderSelect }: OrderTablePro
         throw new Error('No auth token found');
       }
 
-      const skip = (currentPage - 1) * itemsPerPage;
-      
-      // Build query parameters
-      const params = new URLSearchParams({
-        skip: skip.toString(),
-        limit: itemsPerPage.toString()
+      const url = buildApiUrl('/v1/superuser/order/active/get-all', {
+        skip: (currentPage - 1) * itemsPerPage,
+        limit: itemsPerPage,
+        ...(orderStatus ? { order_status: orderStatus } : {})
       });
 
-      if (orderStatus) {
-        params.append('order_status', orderStatus);
-      }
+      logger.info('Fetching orders:', url);
 
-      // Construct the full URL
-      const apiUrl = `http://localhost:8000/v1/superuser/order/active/get-all?${params.toString()}`;
-
-      logger.log('Fetching orders:', apiUrl);
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

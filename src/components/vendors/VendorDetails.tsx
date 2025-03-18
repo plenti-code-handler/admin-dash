@@ -5,6 +5,7 @@ import { logger } from '@/utils/logger';
 import type { Vendor } from '@/types/vendor';
 import Image from 'next/image';
 import { api } from '@/services/api';
+import { buildApiUrl } from '@/config';
 
 interface BankAccount {
   account_number: string;
@@ -37,7 +38,11 @@ export default function VendorDetails({ vendor, onClose }: VendorDetailsProps) {
         throw new Error('No auth token found');
       }
 
-      const response = await fetch(`http://localhost:8000/v1/superuser/vendor/account-details/get?vendor_id=${vendor.id}`, {
+      const url = buildApiUrl('/v1/superuser/vendor/account-details/get', {
+        vendor_id: vendor.id
+      });
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

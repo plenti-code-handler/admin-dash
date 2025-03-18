@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { buildApiUrl } from '@/config';
 
 interface DashboardStats {
   totalUsers: number;
@@ -35,10 +36,10 @@ export function useDashboardStats() {
 
         // Fetch all stats in parallel
         const [userCount, vendorCount, orderCount, paymentTotal] = await Promise.all([
-          fetch('http://localhost:8000/v1/superuser/user/count/get', { headers }),
-          fetch('http://localhost:8000/v1/superuser/vendor/count/get', { headers }),
-          fetch('http://localhost:8000/v1/superuser/order/count/get', { headers }),
-          fetch('http://localhost:8000/v1/superuser/payment/total/get', { headers })
+          fetch(buildApiUrl('/v1/superuser/user/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/vendor/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/order/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/payment/total/get'), { headers })
         ]);
 
         const [userData, vendorData, orderData, paymentData] = await Promise.all([

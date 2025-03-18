@@ -5,6 +5,7 @@ import { XMarkIcon, TagIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import type { CreateCouponData, DiscountType } from '@/types/coupon';
+import { buildApiUrl } from '@/config';
 
 interface CreateCouponModalProps {
   isOpen: boolean;
@@ -32,9 +33,14 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
       if (!token) throw new Error('No auth token found');
 
-      await api.post('/v1/superuser/coupon/create', {
-        token,
-        data: formData
+      const url = buildApiUrl('/v1/superuser/coupon/create');
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
       });
 
       onSuccess();

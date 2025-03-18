@@ -4,6 +4,7 @@ import { CurrencyRupeeIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import type { Payment } from '@/types/payment';
+import { buildApiUrl } from '@/config';
 
 interface PaymentTableProps {
   paymentStatus: string;
@@ -73,6 +74,13 @@ export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTa
 
       const skip = (currentPage - 1) * itemsPerPage;
       
+      const url = buildApiUrl('/v1/superuser/payment/get', {
+        skip: (currentPage - 1) * itemsPerPage,
+        limit: itemsPerPage,
+        ...(paymentStatus ? { payment_status: paymentStatus } : {}),
+        ...(paymentMethod ? { payment_type: paymentMethod } : {})
+      });
+
       const data = await api.get('/v1/superuser/payment/get', {
         token,
         params: {

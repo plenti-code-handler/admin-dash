@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
+import { buildApiUrl } from '@/config';
 
 interface UserProfile {
   id: number;
@@ -27,7 +28,8 @@ export function useUserProfile() {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch('http://localhost:8000/v1/superuser/me/get', {
+      const url = buildApiUrl('/v1/superuser/me/profile');
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
