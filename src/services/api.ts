@@ -16,14 +16,20 @@ export const api = {
     const url = buildApiUrl(path, params);
     
     const headers: HeadersInit = {
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { 
+      headers,
+      credentials: 'include',
+      mode: 'cors',
+    });
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -38,7 +44,8 @@ export const api = {
     
     const headers: HeadersInit = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
     };
 
     if (token) {
@@ -63,7 +70,9 @@ export const api = {
     const url = buildApiUrl(path, params);
     
     const headers: HeadersInit = {
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
     };
 
     if (token) {
@@ -87,7 +96,9 @@ export const api = {
     const url = buildApiUrl(path, params);
     
     const headers: HeadersInit = {
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
     };
 
     if (token) {
