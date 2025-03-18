@@ -11,6 +11,11 @@ interface PaymentTableProps {
   paymentMethod: string;
 }
 
+interface PaymentApiResponse {
+  response: Payment[];
+  total_response: number;
+}
+
 export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTableProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,14 +77,15 @@ export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTa
         throw new Error('No auth token found');
       }
 
-      const { response: paymentsData, total_response } = await api.get<Payment[]>(
+      const { response: paymentsData, total_response } = await api.get<PaymentApiResponse>(
         '/v1/superuser/payment/get',
         { 
           token,
           params: {
             skip: (currentPage - 1) * itemsPerPage,
             limit: itemsPerPage,
-            payment_status: paymentStatus
+            ...(paymentStatus ? { payment_status: paymentStatus } : {}),
+            ...(paymentMethod ? { payment_type: paymentMethod } : {})
           }
         }
       );
