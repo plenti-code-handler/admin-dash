@@ -21,6 +21,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
+    ],
     "/dashboard/users/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -40,6 +45,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/payments/page.js"
+    ],
+    "/dashboard/coupons/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/coupons/page.js"
     ]
   }
 }

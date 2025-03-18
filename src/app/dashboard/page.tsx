@@ -20,7 +20,7 @@ export default function DashboardPage() {
 
   // Format numbers for display
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₹${(num / 1000000).toFixed(1)}M`;
+  const formatCurrency = (num: number) => `₹${(num / 1000).toFixed(1)}K`;
 
   const userTrendData = [
     { date: '2024-01', value: 1200 },
