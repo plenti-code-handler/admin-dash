@@ -77,21 +77,20 @@ export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTa
         throw new Error('No auth token found');
       }
 
-      const { response: paymentsData, total_response } = await api.get<PaymentApiResponse>(
+      const data = await api.get<PaymentApiResponse>(
         '/v1/superuser/payment/get',
         { 
           token,
           params: {
             skip: (currentPage - 1) * itemsPerPage,
             limit: itemsPerPage,
-            ...(paymentStatus ? { payment_status: paymentStatus } : {}),
             ...(paymentMethod ? { payment_type: paymentMethod } : {})
           }
         }
       );
 
-      setPayments(paymentsData);
-      setTotalPages(Math.ceil(total_response / itemsPerPage));
+      setPayments(data.response);
+      setTotalPages(Math.ceil(data.total_response / itemsPerPage));
     } catch (error) {
       logger.error('Error fetching payments:', error);
     } finally {
