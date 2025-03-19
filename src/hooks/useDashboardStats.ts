@@ -1,8 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { api } from '@/services/api';  // Import the api service instead of using fetch directly
-import { logger } from '@/utils/logger';
-import type { ApiResponse } from '@/services/api';
+import { buildApiUrl } from '@/config';
 
 interface DashboardStats {
   totalUsers: number;
@@ -10,15 +8,6 @@ interface DashboardStats {
   totalVendors: number;
   totalOrders: number;
   totalPayments: number;
-}
-
-interface CountResponse {
-  count: number;
-  active_count?: number;
-}
-
-interface PaymentTotalResponse {
-  total: number;
 }
 
 export function useDashboardStats() {
@@ -41,23 +30,34 @@ export function useDashboardStats() {
           throw new Error('No authentication token found');
         }
 
-        // Use the api service instead of fetch directly
+        const headers = {
+          'Authorization': `Bearer ${token}`
+        };
+
+        // Fetch all stats in parallel
+        const [userCount, vendorCount, orderCount, paymentTotal] = await Promise.all([
+          fetch(buildApiUrl('/v1/superuser/user/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/vendor/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/order/count/get'), { headers }),
+          fetch(buildApiUrl('/v1/superuser/payment/total/get'), { headers })
+        ]);
+
         const [userData, vendorData, orderData, paymentData] = await Promise.all([
-          api.get<ApiResponse<CountResponse>>('/v1/superuser/user/count/get', { token }),
-          api.get<ApiResponse<CountResponse>>('/v1/superuser/vendor/count/get', { token }),
-          api.get<ApiResponse<CountResponse>>('/v1/superuser/order/count/get', { token }),
-          api.get<ApiResponse<PaymentTotalResponse>>('/v1/superuser/payment/total/get', { token })
+          userCount.json(),
+          vendorCount.json(),
+          orderCount.json(),
+          paymentTotal.json()
         ]);
 
         setStats({
-          totalUsers: userData.response.count || 0,
-          activeUsers: userData.response.active_count || 0,
-          totalVendors: vendorData.response.count || 0,
-          totalOrders: orderData.response.count || 0,
-          totalPayments: paymentData.response.total || 0
+          totalUsers: userData.count || 0,
+          activeUsers: userData.active_count || 0, // Adjust based on actual API response
+          totalVendors: vendorData.count || 0,
+          totalOrders: orderData.count || 0,
+          totalPayments: paymentData.total || 0
         });
       } catch (err) {
-        logger.error('Error fetching dashboard stats:', err);
+        console.error('Error fetching dashboard stats:', err);
         setError(err instanceof Error ? err.message : 'Error fetching stats');
       } finally {
         setLoading(false);
@@ -68,4 +68,4 @@ export function useDashboardStats() {
   }, []);
 
   return { stats, loading, error };
-}
+} 
