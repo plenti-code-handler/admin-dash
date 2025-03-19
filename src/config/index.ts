@@ -7,11 +7,10 @@ interface Config {
 
 const configs: Record<Environment, Config> = {
   development: {
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   },
   production: {
-    // Ensure HTTPS for production URL
     apiBaseUrl: 'https://api.plenti.co.in',
     debug: false
   }
@@ -23,14 +22,18 @@ export const config: Config = configs[environment];
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string, params?: Record<string, string | number | boolean>) => {
-  // Always force HTTPS in production
-  let baseURL = config.apiBaseUrl;
-  if (environment === 'production') {
-    baseURL = baseURL.replace('http://', 'https://');
-  }
-    
-  const url = new URL(path, baseURL);
+  const url = new URL(path, config.apiBaseUrl);
   
+  // Force correct protocol and host based on environment
+  if (environment === 'production') {
+    url.protocol = 'https:';
+    url.host = 'api.plenti.co.in';
+  } else {
+    url.protocol = 'http:';
+    url.host = '127.0.0.1:8000';
+  }
+  
+  // Add query parameters if any
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -39,14 +42,12 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
     });
   }
   
-  // Force HTTPS for production URLs
-  if (environment === 'production') {
-    url.protocol = 'https:';
-  }
+  const finalUrl = url.toString();
+
   
   if (config.debug) {
-    console.log('API Request URL:', url.toString());
+    console.log('Built API URL:', finalUrl);
   }
   
-  return url.toString();
+  return finalUrl;
 }; 

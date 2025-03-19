@@ -32,7 +32,7 @@ export default function CouponTable({ onDelete }: CouponTableProps) {
         throw new Error('No auth token found');
       }
 
-      const data = await api.get<CouponApiResponse>('/v1/superuser/coupon', { token });
+      const data = await api.get<CouponApiResponse>('/v1/superuser/coupon/get', { token });
       setCoupons(data.response);
     } catch (error) {
       logger.error('Error fetching coupons:', error);

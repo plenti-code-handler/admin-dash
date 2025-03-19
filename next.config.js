@@ -14,7 +14,21 @@ const nextConfig = {
     // Remove this when the type issues are resolved
     ignoreBuildErrors: true,
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: 'upgrade-insecure-requests'
+          }
+        ],
+      },
+    ]
+  },
   // ... other config options
 }
+
 
 module.exports = nextConfig 

@@ -1,19 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { buildApiUrl } from '@/config';
-
-interface DashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalVendors: number;
-  totalOrders: number;
-  totalPayments: number;
-}
+import { dashboardService } from '@/services/dashboardService';
+import type { DashboardStats } from '@/types/api';
 
 export function useDashboardStats() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
-    activeUsers: 0,
     totalVendors: 0,
     totalOrders: 0,
     totalPayments: 0
@@ -24,41 +16,39 @@ export function useDashboardStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-        
+        setLoading(true);
+        setError(null);
+
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('token='))
+          ?.split('=')[1];
+
         if (!token) {
-          throw new Error('No authentication token found');
+          throw new Error('Authentication token not found');
         }
 
-        const headers = {
-          'Authorization': `Bearer ${token}`
-        };
-
-        // Fetch all stats in parallel
-        const [userCount, vendorCount, orderCount, paymentTotal] = await Promise.all([
-          fetch(buildApiUrl('/v1/superuser/user/count/get'), { headers }),
-          fetch(buildApiUrl('/v1/superuser/vendor/count/get'), { headers }),
-          fetch(buildApiUrl('/v1/superuser/order/count/get'), { headers }),
-          fetch(buildApiUrl('/v1/superuser/payment/total/get'), { headers })
-        ]);
-
-        const [userData, vendorData, orderData, paymentData] = await Promise.all([
-          userCount.json(),
-          vendorCount.json(),
-          orderCount.json(),
-          paymentTotal.json()
+        const [
+          userCount,
+          vendorCount,
+          orderCount,
+          paymentTotal
+        ] = await Promise.all([
+          dashboardService.getUserCount(token),
+          dashboardService.getVendorCount(token),
+          dashboardService.getOrderCount(token),
+          dashboardService.getPaymentTotal(token)
         ]);
 
         setStats({
-          totalUsers: userData.count || 0,
-          activeUsers: userData.active_count || 0, // Adjust based on actual API response
-          totalVendors: vendorData.count || 0,
-          totalOrders: orderData.count || 0,
-          totalPayments: paymentData.total || 0
+          totalUsers: userCount.count,
+          totalVendors: vendorCount.count,
+          totalOrders: orderCount.count,
+          totalPayments: paymentTotal.total
         });
       } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-        setError(err instanceof Error ? err.message : 'Error fetching stats');
+        console.error('Dashboard Stats Error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
       } finally {
         setLoading(false);
       }

@@ -6,21 +6,48 @@ import TrendChart from '@/components/dashboard/TrendChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Link from 'next/link';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { ShoppingBagIcon, CurrencyRupeeIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
   const { stats, loading, error } = useDashboardStats();
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-32 bg-gray-100 rounded-lg"></div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
+    return (
+      <div className="rounded-lg bg-red-50 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading dashboard</h3>
+            <div className="mt-2 text-sm text-red-700">{error}</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Format numbers for display
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₹${(num / 1000).toFixed(1)}K`;
+  const formatCurrency = (amount: number) => 
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
 
   const userTrendData = [
     { date: '2024-01', value: 1200 },
@@ -47,52 +74,28 @@ export default function DashboardPage() {
     <div className="space-y-6 relative">
       <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
       
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <Link href="/dashboard/users">
-          <StatsWidget 
-            title="Total Users"
-            value={formatNumber(stats.totalUsers)}
-            trend={{ value: "↑", isPositive: true }}
-            icon={UsersIcon}
-          />
-        </Link>
-        
-        <Link href="/dashboard/users">
-          <StatsWidget 
-            title="Active Users"
-            value={formatNumber(stats.activeUsers)}
-            trend={{ value: "↑", isPositive: true }}
-            icon={UserGroupIcon}
-          />
-        </Link>
-
-        <Link href="/dashboard/vendors">
-          <StatsWidget 
-            title="Total Vendors"
-            value={formatNumber(stats.totalVendors)}
-            trend={{ value: "↑", isPositive: true }}
-            icon={BuildingStorefrontIcon}
-          />
-        </Link>
-
-        <Link href="/dashboard/orders">
-          <StatsWidget 
-            title="Total Orders"
-            value={formatNumber(stats.totalOrders)}
-            trend={{ value: "↑", isPositive: true }}
-            icon={ShoppingCartIcon}
-          />
-        </Link>
-
-        <Link href="/dashboard/payments">
-          <StatsWidget 
-            title="Total Payments"
-            value={formatCurrency(stats.totalPayments)}
-            trend={{ value: "↑", isPositive: true }}
-            icon={CreditCardIcon}
-          />
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Total Users"
+          value={stats.totalUsers}
+          icon={<UsersIcon className="h-6 w-6 text-indigo-600" />}
+        />
+        <StatsCard
+          title="Total Vendors"
+          value={stats.totalVendors}
+          icon={<BuildingStorefrontIcon className="h-6 w-6 text-indigo-600" />}
+        />
+        <StatsCard
+          title="Total Orders"
+          value={stats.totalOrders}
+          icon={<ShoppingBagIcon className="h-6 w-6 text-indigo-600" />}
+        />
+        <StatsCard
+          title="Total Revenue"
+          value={stats.totalPayments}
+          icon={<CurrencyRupeeIcon className="h-6 w-6 text-indigo-600" />}
+          formatter={formatCurrency}
+        />
       </div>
 
       <div className="space-y-6">
