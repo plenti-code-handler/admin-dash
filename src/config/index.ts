@@ -11,7 +11,7 @@ const configs: Record<Environment, Config> = {
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   },
   production: {
-    // Ensure HTTPS for production URL
+    // Hardcode HTTPS URL without any environment variable
     apiBaseUrl: 'https://api.plenti.co.in',
     debug: false
   }
@@ -23,14 +23,16 @@ export const config: Config = configs[environment];
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string, params?: Record<string, string | number | boolean>) => {
-  // Always force HTTPS in production
-  let baseURL = config.apiBaseUrl;
-  if (environment === 'production') {
-    baseURL = baseURL.replace('http://', 'https://');
-  }
-    
-  const url = new URL(path, baseURL);
+  // Create URL with the base URL
+  const url = new URL(path, config.apiBaseUrl);
   
+  // Always force HTTPS in production, regardless of the base URL
+  if (environment === 'production') {
+    url.protocol = 'https:';
+    url.host = 'api.plenti.co.in'; // Ensure correct host
+  }
+  
+  // Add query parameters if any
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -39,14 +41,11 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
     });
   }
   
-  // Force HTTPS for production URLs
-  if (environment === 'production') {
-    url.protocol = 'https:';
-  }
+  const finalUrl = url.toString();
   
   if (config.debug) {
-    console.log('API Request URL:', url.toString());
+    console.log('API Request URL:', finalUrl);
   }
   
-  return url.toString();
+  return finalUrl;
 }; 
