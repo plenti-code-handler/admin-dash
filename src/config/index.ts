@@ -7,7 +7,7 @@ interface Config {
 
 const configs: Record<Environment, Config> = {
   development: {
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   },
   production: {
@@ -22,15 +22,16 @@ export const config: Config = configs[environment];
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string, params?: Record<string, string | number | boolean>) => {
-  // Create URL with the base URL
   const url = new URL(path, config.apiBaseUrl);
   
-  // Always force HTTPS in production, regardless of the base URL
+  // Force correct protocol and host based on environment
   if (environment === 'production') {
     url.protocol = 'https:';
-    url.host = 'api.plenti.co.in'; // Ensure correct host
+    url.host = 'api.plenti.co.in';
+  } else {
+    url.protocol = 'http:';
+    url.host = '127.0.0.1:8000';
   }
-
   
   // Add query parameters if any
   if (params) {
@@ -45,7 +46,7 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
 
   
   if (config.debug) {
-    console.log('API Request URL:', finalUrl);
+    console.log('Built API URL:', finalUrl);
   }
   
   return finalUrl;
