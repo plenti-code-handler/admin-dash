@@ -11,7 +11,6 @@ const configs: Record<Environment, Config> = {
     debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
   },
   production: {
-    // Hardcode HTTPS URL without any environment variable
     apiBaseUrl: 'https://api.plenti.co.in',
     debug: false
   }
@@ -31,6 +30,7 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
     url.protocol = 'https:';
     url.host = 'api.plenti.co.in'; // Ensure correct host
   }
+
   
   // Add query parameters if any
   if (params) {
@@ -42,6 +42,7 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
   }
   
   const finalUrl = url.toString();
+
   
   if (config.debug) {
     console.log('API Request URL:', finalUrl);
