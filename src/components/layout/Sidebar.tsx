@@ -17,36 +17,41 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-[#5F22D9] min-h-screen">
+    <aside className="w-16 md:w-20 flex flex-col items-center py-6 bg-[#5F22D9] min-h-screen">
       {/* Logo section */}
-      <div className="px-4 py-6 flex justify-center">
-        <Link href="/dashboard">
+      <div className="mb-10 flex justify-center w-full">
+        <Link href="/dashboard" className="flex items-center justify-center">
           <Image
             src="/images/plenti-logo.png"
             alt="Plenti Logo"
-            width={120}
-            height={59}
-            className="object-contain"
+            width={36}
+            height={18}
+            className="object-contain opacity-80 grayscale invert"
           />
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6">
+      <nav className="flex flex-col gap-2 w-full">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center px-4 py-3 ${
-                isActive 
-                  ? 'bg-white/10 text-white' 
-                  : 'text-white/70 hover:bg-white/10 hover:text-white'
-              }`}
+              className={`
+                group flex flex-col items-center justify-center py-3 rounded-lg transition
+                ${isActive
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white'
+                }
+              `}
+              title={item.name}
             >
-              <item.icon className="w-6 h-6 mr-3" />
-              {item.name}
+              <item.icon className={`w-6 h-6 mb-1 transition ${isActive ? 'text-white' : 'text-white/60 group-hover:text-white'}`} />
+              <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {item.name}
+              </span>
             </Link>
           );
         })}
