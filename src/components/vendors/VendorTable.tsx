@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import type { Vendor, VendorType } from '@/types/vendor';
@@ -7,6 +7,7 @@ import { api } from '@/services/api';
 
 interface VendorTableProps {
   vendorType: VendorType | '';
+  searchQuery: string;
   onVendorSelect: (vendor: Vendor) => void;
 }
 
@@ -15,7 +16,7 @@ interface ApiResponse {
   total_response: number;
 }
 
-export default function VendorTable({ vendorType, onVendorSelect }: VendorTableProps) {
+const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVendorSelect }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,7 +35,6 @@ export default function VendorTable({ vendorType, onVendorSelect }: VendorTableP
     return vendors.filter(vendor => 
       vendor.vendor_name.toLowerCase().includes(searchTerm) ||
       vendor.email.toLowerCase().includes(searchTerm) ||
-      vendor.phone_number.includes(searchTerm) ||
       vendor.vendor_type.toLowerCase().includes(searchTerm)
     );
   }, [vendors, localSearch]);
@@ -171,4 +171,6 @@ export default function VendorTable({ vendorType, onVendorSelect }: VendorTableP
       )}
     </div>
   );
-} 
+};
+
+export default VendorTable; 
