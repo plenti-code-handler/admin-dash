@@ -45,7 +45,6 @@ const vendorTypeOptions = [
 export default function VendorsPage() {
   const [selectedType, setSelectedType] = useState<VendorType | ''>('');
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchVendors = useCallback(async () => {
     // ... existing fetch code
@@ -58,18 +57,8 @@ export default function VendorsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-card rounded-xl p-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Vendor Management</h1>
-        <div className="relative">
-          <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search vendors..."
-            className="pl-10 pr-4 py-2 border rounded-md text-sm"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="glass-card p-6">
+        <h1 className="text-xl font-semibold text-gray-900">Vendor Management</h1>
       </div>
 
       <div className="flex gap-6">
@@ -118,7 +107,6 @@ export default function VendorsPage() {
             {/* Vendors Table */}
             <VendorTable 
               vendorType={selectedType}
-              searchQuery={searchQuery}
               onVendorSelect={setSelectedVendor} 
             />
           </div>
