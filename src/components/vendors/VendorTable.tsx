@@ -32,12 +32,19 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
     const searchTerm = localSearch.toLowerCase();
-    return vendors.filter(vendor => 
-      vendor.vendor_name.toLowerCase().includes(searchTerm) ||
-      vendor.email.toLowerCase().includes(searchTerm) ||
-      vendor.vendor_type.toLowerCase().includes(searchTerm)
-    );
-  }, [vendors, localSearch]);
+
+    return vendors.filter(vendor => {
+      // Filter by vendorType if provided
+      const matchesType = vendorType ? (vendor.vendor_type === vendorType) : true;
+      // Filter by search
+      const matchesSearch =
+        (vendor.vendor_name?.toLowerCase() || '').includes(searchTerm) ||
+        (vendor.email?.toLowerCase() || '').includes(searchTerm) ||
+        (vendor.vendor_type?.toLowerCase() || '').includes(searchTerm);
+
+      return matchesType && matchesSearch;
+    });
+  }, [vendors, localSearch, vendorType]);
 
   const fetchVendors = async () => {
     try {
