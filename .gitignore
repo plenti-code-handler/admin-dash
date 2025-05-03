@@ -5,6 +5,10 @@ node_modules/
 .next/
 out/
 
+*.gz
+*.gz.old
+
+
 # testing
 coverage/
 
