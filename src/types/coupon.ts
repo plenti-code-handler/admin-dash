@@ -12,6 +12,8 @@ export interface Coupon {
   max_discount: number | null;
   valid_until: number | null;
   usage_limit: number | null;
+  image_url: string;
+  coupon_type: string;
 }
 
 export interface CreateCouponData {

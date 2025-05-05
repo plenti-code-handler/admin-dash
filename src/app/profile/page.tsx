@@ -1,31 +1,101 @@
 'use client';
-import { useState } from 'react';
-import { UserCircleIcon, CameraIcon, ArrowLeftIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { UserCircleIcon, HomeIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { buildApiUrl } from '@/config';
 
 export default function ProfilePage() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: 'Admin User',
-    email: 'admin@plenti.co.in',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  // User info state
+  const [user, setUser] = useState<{ email: string; phone_number: string }>({
+    email: '',
+    phone_number: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Create superuser modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createData, setCreateData] = useState({
+    email: '',
+    password: '',
+    phone_number: '',
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
+
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+        const url = buildApiUrl('/v1/superuser/me/get');
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        console.log(res, "res")
+        if (!res.ok) throw new Error('Failed to load user details');
+        const data = await res.json();
+        setUser({
+          email: data.email || '',
+          phone_number: data.phone_number || '',
+        });
+      } catch (err) {
+        setError('Could not load user details');
+        console.log(err, "err")
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Create superuser handler
+  const handleCreateSuperuser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreateLoading(true);
+    setCreateError('');
+    setCreateSuccess('');
     try {
-      // API call here
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error:', error);
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      const url = buildApiUrl('/v1/superuser/me/create');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(createData),
+      });
+      if (res.ok) {
+        setCreateSuccess('Superuser created successfully!');
+        setCreateData({ email: '', password: '', phone_number: '' });
+      } else {
+        const data = await res.json();
+        if (typeof data.detail === 'string') {
+          setCreateError(data.detail);
+        } else if (Array.isArray(data.detail)) {
+          setCreateError(
+            data.detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ')
+          );
+        } else if (typeof data.detail === 'object' && data.detail !== null) {
+          setCreateError(JSON.stringify(data.detail));
+        } else {
+          setCreateError('Failed to create superuser');
+        }
+      }
+    } catch (err) {
+      setCreateError('An error occurred');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-pattern relative">
-      {/* Floating Back Button */}
+      {/* Back to Dashboard */}
       <Link
         href="/dashboard"
         className="fixed top-8 left-8 flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
@@ -34,137 +104,89 @@ export default function ProfilePage() {
         <HomeIcon className="w-6 h-6 text-[#5F22D9]" />
       </Link>
 
-      <div className="max-w-4xl mx-auto pt-12 px-4">
-        {/* Profile Header Card */}
-        <div className="glass-card rounded-2xl p-8 mb-8">
-          <div className="flex flex-col items-center">
-            <div className="relative">
-              <div className="w-32 h-32 bg-[#5F22D9]/10 rounded-full flex items-center justify-center">
-                <UserCircleIcon className="w-24 h-24 text-[#5F22D9]" />
-              </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow">
-                <CameraIcon className="w-5 h-5 text-[#5F22D9]" />
-              </button>
-            </div>
-            <h1 className="mt-4 text-2xl font-bold text-gray-900">{formData.name}</h1>
-            <p className="text-gray-500">{formData.email}</p>
+      <div className="max-w-2xl mx-auto pt-16 px-4">
+        {/* User Details Card */}
+        <div className="glass-card rounded-2xl p-8 mb-8 flex flex-col items-center">
+          <div className="w-28 h-28 bg-[#5F22D9]/10 rounded-full flex items-center justify-center mb-4">
+            <UserCircleIcon className="w-20 h-20 text-[#5F22D9]" />
           </div>
+          {loading ? (
+            <div className="text-gray-400">Loading...</div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold text-gray-900">{user.email}</h1>
+              <p className="text-gray-500">Phone: {user.phone_number}</p>
+            </>
+          )}
         </div>
 
-        {/* Profile Form Card */}
-        <div className="glass-card rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Personal Information */}
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-gray-900 pb-2 border-b">
-                Personal Information
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Add New Superuser Button */}
+        <div className="flex justify-end mb-8">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-5 py-2 bg-[#5F22D9] text-white rounded-lg text-sm font-medium hover:bg-[#5F22D9]/90 transition-colors"
+          >
+            Add New Superuser
+          </button>
+        </div>
+
+        {/* Create Superuser Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
+              <button
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+                onClick={() => setShowCreateModal(false)}
+              >
+                ×
+              </button>
+              <h2 className="text-lg font-semibold mb-4">Create New Superuser</h2>
+              <form onSubmit={handleCreateSuperuser} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    disabled={!isEditing}
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#5F22D9] disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Email</label>
                   <input
                     type="email"
-                    disabled={!isEditing}
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#5F22D9] disabled:bg-gray-50"
+                    required
+                    value={createData.email}
+                    onChange={e => setCreateData({ ...createData, email: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Password Section */}
-            {isEditing && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-900 pb-2 border-b">
-                  Change Password
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Password
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.currentPassword}
-                      onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#5F22D9]"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={formData.newPassword}
-                        onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#5F22D9]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#5F22D9]"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={createData.password}
+                    onChange={e => setCreateData({ ...createData, password: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                  />
                 </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-4 pt-4">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-[#5F22D9] text-white rounded-lg text-sm font-medium hover:bg-[#5F22D9]/90 transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                </>
-              ) : (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={createData.phone_number}
+                    onChange={e => setCreateData({ ...createData, phone_number: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                {createError && <div className="text-red-500 text-sm">{createError}</div>}
+                {createSuccess && <div className="text-green-600 text-sm">{createSuccess}</div>}
                 <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-2 bg-[#5F22D9] text-white rounded-lg text-sm font-medium hover:bg-[#5F22D9]/90 transition-colors"
+                  type="submit"
+                  disabled={createLoading}
+                  className="w-full py-2 bg-[#5F22D9] text-white rounded hover:bg-[#5F22D9]/90 transition"
                 >
-                  Edit Profile
+                  {createLoading ? 'Creating...' : 'Create Superuser'}
                 </button>
-              )}
+              </form>
             </div>
-          </form>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

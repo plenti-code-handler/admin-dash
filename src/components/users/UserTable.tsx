@@ -229,7 +229,7 @@ export default function UserTable({ onUserSelect, searchQuery }: UserTableProps)
           </button>
           <button
             onClick={handleNextPage}
-            disabled={currentPage >= totalPages}
+            disabled={false}
             className="p-2 rounded-md border disabled:opacity-50 transition-colors"
             aria-label="Next page"
           >
