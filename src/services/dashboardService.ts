@@ -1,5 +1,6 @@
 import { buildApiUrl } from '@/config';
 import { CountResponse, PaymentTotalResponse } from '@/types/api';
+import { useRouter } from 'next/navigation';
 
 const ENDPOINTS = {
   USER_COUNT: '/v1/superuser/user/count/get/',
@@ -8,7 +9,7 @@ const ENDPOINTS = {
   PAYMENT_TOTAL: '/v1/superuser/payment/total/get'
 } as const;
 
-async function fetchWithAuth<T>(url: string, token: string): Promise<T> {
+export async function fetchWithAuth<T>(url: string, token: string, logout?: () => void): Promise<T> {
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -19,7 +20,15 @@ async function fetchWithAuth<T>(url: string, token: string): Promise<T> {
       },
       cache: 'no-store'
     });
-    console.log(response, "************");
+
+    if (response.status === 401 || response.status === 403) {
+      // Remove token from cookies/localStorage
+      document.cookie = 'token=; Max-Age=0; path=/;';
+      if (logout) logout();
+      // Optionally, you can also redirect here if not using a context
+      window.location.href = '/login';
+      return Promise.reject(new Error('Unauthorized'));
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

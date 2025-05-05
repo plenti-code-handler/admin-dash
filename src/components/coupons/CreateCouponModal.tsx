@@ -1,5 +1,5 @@
 'use client';
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TagIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
@@ -14,40 +14,73 @@ interface CreateCouponModalProps {
 }
 
 export default function CreateCouponModal({ isOpen, onClose, onSuccess }: CreateCouponModalProps) {
-  const [formData, setFormData] = useState<CreateCouponData>({
+  const [formData, setFormData] = useState({
     code: '',
+    name: '',
+    discount_type: 'PERCENTAGE' as DiscountType,
     discount_value: 0,
-    discount_type: 'PERCENTAGE',
     min_order_value: 0,
-    valid_from: Math.floor(Date.now() / 1000)
+    max_discount: undefined as number | undefined,
+    usage_limit: undefined as number | undefined,
   });
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
       if (!token) throw new Error('No auth token found');
+
+      // Only include the required fields
+      const {
+        code,
+        name,
+        discount_type,
+        discount_value,
+        min_order_value,
+        max_discount,
+        usage_limit
+      } = formData;
+
+      const payload = {
+        code,
+        name,
+        discount_type,
+        discount_value,
+        min_order_value,
+        max_discount,
+        usage_limit
+      };
+
+      const form = new FormData();
+      form.append('data', JSON.stringify(payload));
+      if (file) {
+        form.append('file', file);
+      }
 
       const url = buildApiUrl('/v1/superuser/coupon/create');
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          // Do NOT set Content-Type; browser will set it for FormData
         },
-        body: JSON.stringify(formData)
+        body: form,
       });
 
-      onSuccess();
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || 'Failed to create coupon');
+      }
+
+      if (onSuccess) onSuccess();
       onClose();
-    } catch (error) {
-      logger.error('Error creating coupon:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create coupon');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create coupon');
     } finally {
       setLoading(false);
     }
@@ -124,7 +157,18 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         />
                       </div>
-
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Coupon Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        />
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
@@ -139,7 +183,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                             <option value="FIXED">Fixed Amount</option>
                           </select>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
                             Discount Value
@@ -154,7 +197,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                           />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
@@ -169,7 +211,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
                             Maximum Discount (Optional)
@@ -183,7 +224,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                           />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
@@ -197,23 +237,23 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Valid Until (Optional)
+                            Coupon Image (Optional)
                           </label>
                           <input
-                            type="datetime-local"
-                            value={formData.valid_until ? new Date(formData.valid_until * 1000).toISOString().slice(0, 16) : ''}
-                            onChange={(e) => setFormData(prev => ({ 
-                              ...prev, 
-                              valid_until: e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : undefined 
-                            }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            type="file"
+                            accept="image/*"
+                            onChange={e => setFile(e.target.files?.[0] || null)}
+                            className="mt-1 block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-md file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-indigo-50 file:text-indigo-700
+                              hover:file:bg-indigo-100"
                           />
                         </div>
                       </div>
-
                       <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                         <button
                           type="submit"

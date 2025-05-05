@@ -4,11 +4,11 @@ import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroico
 import { logger } from '@/utils/logger';
 import type { Vendor, VendorType } from '@/types/vendor';
 import { api } from '@/services/api';
+import { useRouter } from 'next/navigation';
 
 interface VendorTableProps {
   vendorType: VendorType | '';
   searchQuery: string;
-  onVendorSelect: (vendor: Vendor) => void;
 }
 
 interface ApiResponse {
@@ -16,18 +16,27 @@ interface ApiResponse {
   total_response: number;
 }
 
-const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVendorSelect }) => {
+const PAGE_SIZE = 10; // Number of vendors per page
+
+const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [total, setTotal] = useState(0);
   const [localSearch, setLocalSearch] = useState('');
-  const itemsPerPage = 10;
+  const router = useRouter();
 
   useEffect(() => {
     fetchVendors();
-  }, [currentPage, vendorType]);
+  }, [skip, vendorType]);
+
+  // Reset skip to 0 when vendorType changes
+  useEffect(() => {
+    setSkip(0);
+  }, [vendorType]);
+
+  const handlePrevious = () => setSkip((prev) => Math.max(0, prev - PAGE_SIZE));
+  const handleNext = () => setSkip((prev) => prev + PAGE_SIZE);
 
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
@@ -58,16 +67,15 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
       const data = await api.get<ApiResponse>('/v1/superuser/vendor/get', {
         token,
         params: {
-          skip: (currentPage - 1) * itemsPerPage,
-          limit: itemsPerPage,
+          skip,
+          limit: PAGE_SIZE,
           ...(vendorType ? { vendor_type: vendorType } : {})
         }
       });
 
       if (data && data.response) {
         setVendors(data.response);
-        setTotalItems(data.total_response || 0);
-        setTotalPages(Math.ceil((data.total_response || 0) / itemsPerPage));
+        setTotal(data.total_response || 0);
       }
     } catch (error) {
       logger.error('Error fetching vendors:', error);
@@ -76,6 +84,12 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
       setLoading(false);
     }
   };
+
+  // Pagination logic
+  const isNextDisabled = total;
+  const isPreviousDisabled = skip === 0;
+  const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (loading) {
     return (
@@ -92,6 +106,7 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
       </div>
     );
   }
+  console.log
 
   return (
     <div className="space-y-4">
@@ -121,7 +136,7 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
           {filteredVendors.map((vendor) => (
             <tr
               key={vendor.id}
-              onClick={() => onVendorSelect(vendor)}
+              onClick={() => router.push(`/vendors/${vendor.id}`)}
               className="hover:bg-gray-50 cursor-pointer"
             >
               <td className="px-6 py-4 whitespace-nowrap">{vendor.vendor_name}</td>
@@ -153,29 +168,28 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery, onVe
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            <ChevronLeftIcon className="h-5 w-5 mr-2" />
-            Previous
-          </button>
-          <span className="text-sm text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            Next
-            <ChevronRightIcon className="h-5 w-5 ml-2" />
-          </button>
-        </div>
-      )}
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white">
+        <button
+          onClick={handlePrevious}
+          disabled={isPreviousDisabled}
+          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ChevronLeftIcon className="h-5 w-5 mr-2" />
+          Previous
+        </button>
+        <span className="text-sm text-gray-700">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={handleNext}
+          disabled={isNextDisabled}
+          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+        >
+          Next
+          <ChevronRightIcon className="h-5 w-5 ml-2" />
+        </button>
+      </div>
     </div>
   );
 };

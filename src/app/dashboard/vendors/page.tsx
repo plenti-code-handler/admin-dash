@@ -8,7 +8,6 @@ import {
   ViewColumnsIcon
 } from '@heroicons/react/24/outline';
 import VendorTable from '@/components/vendors/VendorTable';
-import VendorDetails from '@/components/vendors/VendorDetails';
 import type { Vendor, VendorType } from '@/types/vendor';
 
 const vendorTypeOptions = [
@@ -44,7 +43,6 @@ const vendorTypeOptions = [
 
 export default function VendorsPage() {
   const [selectedType, setSelectedType] = useState<VendorType | ''>('');
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
   const fetchVendors = useCallback(async () => {
     // ... existing fetch code
@@ -107,22 +105,11 @@ export default function VendorsPage() {
             {/* Vendors Table */}
             <VendorTable 
               vendorType={selectedType}
-              onVendorSelect={setSelectedVendor} 
+              onVendorSelect={() => {}} 
             />
           </div>
         </div>
 
-        {/* Vendor Details Sidebar */}
-        {selectedVendor && (
-          <div className="w-96">
-            <div className="glass-card p-6 sticky top-6">
-              <VendorDetails 
-                vendor={selectedVendor} 
-                onClose={() => setSelectedVendor(null)} 
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

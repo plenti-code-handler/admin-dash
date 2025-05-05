@@ -1,9 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { UsersIcon, BuildingStorefrontIcon, ShoppingBagIcon, CurrencyRupeeIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { buildApiUrl } from '@/config';
+import { useRouter } from 'next/navigation';
 
 const CACHE_KEY = 'dashboard_stats_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -12,6 +14,10 @@ export default function DashboardPage() {
   const [cachedStats, setCachedStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [topVendors, setTopVendors] = useState<any[]>([]);
+  const [vendorLoading, setVendorLoading] = useState(false);
+  const [vendorError, setVendorError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Example trend data (replace with real data)
   const userTrendData = [
@@ -40,6 +46,36 @@ export default function DashboardPage() {
   // Use the original hook, but only fetch if not cached
   const { stats, loading: hookLoading, error: hookError } = useDashboardStats();
 
+  // Date range state (default: last 7 days)
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return d;
+  }, []);
+  // Local state for pickers
+  const [pickerStart, setPickerStart] = useState(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().slice(0,10);
+  });
+  const [pickerEnd, setPickerEnd] = useState(() => today.toISOString().slice(0,10));
+  // Actual query state
+  const [startDate, setStartDate] = useState(pickerStart);
+  const [endDate, setEndDate] = useState(pickerEnd);
+
+  // Convert date string (YYYY-MM-DD) to IST unix timestamp (seconds)
+  const dateToISTUnix = (dateStr: string, endOfDay = false) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create date in IST
+    const date = new Date(Date.UTC(year, month - 1, day));
+    // Add IST offset (5.5 hours)
+    date.setUTCHours(date.getUTCHours() + 5, date.getUTCMinutes() + 30, 0, 0);
+    if (endOfDay) {
+      date.setUTCHours(23, 59, 59, 999);
+    }
+    return Math.floor(date.getTime() / 1000);
+  };
+
   useEffect(() => {
     // Try to load from localStorage
     const cache = localStorage.getItem(CACHE_KEY);
@@ -62,6 +98,34 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }, [hookLoading, stats, hookError]);
+
+  // Fetch top vendors by revenue
+  useEffect(() => {
+    const fetchTopVendors = async () => {
+      try {
+        setVendorLoading(true);
+        setVendorError(null);
+        const token = localStorage.getItem('token') || document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+        if (!token) throw new Error('No auth token found');
+        const url = buildApiUrl('/v1/superuser/vendor/top/revenue/get', {
+          start_date: dateToISTUnix(startDate),
+          end_date: dateToISTUnix(endDate, true),
+        });
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch top vendors');
+        const data = await res.json();
+        setTopVendors(data);
+      } catch (err: any) {
+        setVendorError(err.message || 'Error fetching top vendors');
+        setTopVendors([]);
+      } finally {
+        setVendorLoading(false);
+      }
+    };
+    fetchTopVendors();
+  }, [startDate, endDate]);
 
   if (loading) {
     return (
@@ -144,6 +208,85 @@ export default function DashboardPage() {
           />
         </Link>
       </div>
+
+      {/* Top Vendors by Revenue */}
+      <div className="mt-10 bg-white rounded-xl shadow-lg p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+          <h2 className="text-lg font-semibold text-gray-800">Top Vendors by Revenue</h2>
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-gray-600">From</label>
+            <input
+              type="date"
+              value={pickerStart}
+              max={pickerEnd}
+              onChange={e => setPickerStart(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            />
+            <label className="text-sm text-gray-600">To</label>
+            <input
+              type="date"
+              value={pickerEnd}
+              min={pickerStart}
+              max={today.toISOString().slice(0,10)}
+              onChange={e => setPickerEnd(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            />
+            <button
+              onClick={() => { setStartDate(pickerStart); setEndDate(pickerEnd); }}
+              className="ml-2 px-4 py-1.5 rounded bg-[#5F22D9] text-white font-semibold text-sm shadow hover:bg-[#4b1aa8] transition"
+            >
+              Go
+            </button>
+          </div>
+        </div>
+        {vendorLoading ? (
+          <div className="py-8 text-center text-gray-400">Loading...</div>
+        ) : vendorError ? (
+          <div className="py-8 text-center text-red-500">{vendorError}</div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
+            <table className="min-w-full bg-white rounded-lg overflow-hidden">
+              <thead className="bg-[#f8fafc] sticky top-0 z-10">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vendor Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vendor ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topVendors.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 text-gray-400">No data found for this range.</td>
+                  </tr>
+                ) : (
+                  topVendors.map((vendor, idx) => (
+                    <tr
+                      key={vendor.vendor_id}
+                      className={`
+                        ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                        hover:bg-indigo-50 transition cursor-pointer
+                      `}
+                      onClick={() => router.push(`/vendors/${vendor.vendor_id}`)}
+                    >
+                      <td className="px-4 py-3 font-medium text-gray-700">{idx + 1}</td>
+                      <td className="px-4 py-3 font-semibold text-gray-900">{vendor.vendor_name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{vendor.vendor_id}</td>
+                      <td className="px-4 py-3">
+                        {vendor.total_revenue !== null
+                          ? <span className="font-semibold text-green-700">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(vendor.total_revenue)}</span>
+                          : <span className="text-gray-400">—</span>
+                        }
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <div className="mb-10" /> {/* Add space after the table */}
 
       {/* Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

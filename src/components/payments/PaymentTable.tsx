@@ -19,20 +19,17 @@ interface PaymentApiResponse {
 export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTableProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const [skip, setSkip] = useState(0);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
-    setCurrentPage(1);
-    fetchPayments();
+    setSkip(0); // Reset to first page on filter change
   }, [paymentStatus, paymentMethod]);
 
   useEffect(() => {
-    if (currentPage > 1) {
-      fetchPayments();
-    }
-  }, [currentPage]);
+    fetchPayments();
+  }, [skip, paymentStatus, paymentMethod]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString('en-US', {
@@ -72,32 +69,36 @@ export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTa
     try {
       setLoading(true);
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
       if (!token) {
         throw new Error('No auth token found');
       }
-
       const result = await api.get<PaymentApiResponse>(
         '/v1/superuser/payment/get',
         { 
           token,
           params: {
-            skip: (currentPage - 1) * itemsPerPage,
-            limit: itemsPerPage,
+            skip,
+            limit: PAGE_SIZE,
             ...(paymentMethod ? { payment_type: paymentMethod } : {})
           }
         }
       );
-
-      const payments: Payment[] = result.response;
-      setPayments(payments);
-      setTotalPages(Math.ceil(result.total_response / itemsPerPage));
+      setPayments(result.response);
+      setTotal(result.total_response || 0);
     } catch (error) {
       logger.error('Error fetching payments:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePrevious = () => setSkip(prev => Math.max(0, prev - PAGE_SIZE));
+  const handleNext = () => setSkip(prev => prev + PAGE_SIZE);
+
+  const isNextDisabled = total < PAGE_SIZE;
+  const isPreviousDisabled = skip === 0;
+  const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (loading) {
     return (
@@ -167,26 +168,26 @@ export default function PaymentTable({ paymentStatus, paymentMethod }: PaymentTa
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+        <button
+          onClick={handlePrevious}
+          disabled={isPreviousDisabled}
+          className="relative inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-700">
+          Page {currentPage}
+        </span>
+        <button
+          onClick={handleNext}
+          disabled={isNextDisabled}
+          className="relative inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 } 

@@ -30,6 +30,53 @@ export default function CouponsPage() {
     }
   };
 
+  const handleCreateCoupon = async (couponData: any, file: File | null) => {
+    try {
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      if (!token) throw new Error('No auth token found');
+
+      const {
+        code,
+        name,
+        discount_type,
+        discount_value,
+        min_order_value,
+        max_discount,
+        usage_limit
+      } = couponData;
+
+      const payload = {
+        code,
+        name,
+        discount_type,
+        discount_value,
+        min_order_value,
+        max_discount,
+        usage_limit
+      };
+
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(payload));
+      if (file) {
+        formData.append('file', file);
+      }
+
+      await fetch('/v1/superuser/coupon/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      setIsCreateModalOpen(false);
+      window.location.reload();
+    } catch (error) {
+      logger.error('Error creating coupon:', error);
+      alert('Failed to create coupon');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -55,10 +102,7 @@ export default function CouponsPage() {
       <CreateCouponModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          setIsCreateModalOpen(false);
-          window.location.reload();
-        }}
+        onCreate={handleCreateCoupon}
       />
     </div>
   );
