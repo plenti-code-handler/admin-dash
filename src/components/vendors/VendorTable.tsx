@@ -5,6 +5,8 @@ import { logger } from '@/utils/logger';
 import type { Vendor, VendorType } from '@/types/vendor';
 import { api } from '@/services/api';
 import { useRouter } from 'next/navigation';
+import axiosClient from '../../../AxiosClient';
+import { buildApiUrl } from '@/config';
 
 interface VendorTableProps {
   vendorType: VendorType | '';
@@ -58,20 +60,14 @@ const VendorTable: React.FC<VendorTableProps> = ({ vendorType, searchQuery }) =>
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
-      const data = await api.get<ApiResponse>('/v1/superuser/vendor/get', {
-        token,
-        params: {
-          skip,
-          limit: PAGE_SIZE,
-          ...(vendorType ? { vendor_type: vendorType } : {})
-        }
+      const url = buildApiUrl('/v1/superuser/vendor/get', {
+        skip,
+        limit: PAGE_SIZE,
+        ...(vendorType ? { vendor_type: vendorType } : {})
       });
+
+      const response = await axiosClient.get(url);
+      const data = response.data;
 
       if (data && data.response) {
         setVendors(data.response);

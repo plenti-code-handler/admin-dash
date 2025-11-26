@@ -1,120 +1,38 @@
-import { config, buildApiUrl } from '@/config';
+import axiosClient from '../../AxiosClient';
+import { buildApiUrl } from '@/config';
+
+interface ApiOptions {
+  params?: Record<string, string | number | boolean>;
+  data?: unknown;
+}
 
 interface ApiResponse<T> {
   response: T;
   total_response?: number;
 }
 
-interface ApiOptions {
-  token?: string;
-  params?: Record<string, string | number | boolean>;
-  data?: unknown;
-}
-
 export const api = {
-  get: async <T>(path: string, { token, params }: ApiOptions = {}): Promise<T> => {
+  get: async <T>(path: string, { params }: ApiOptions = {}): Promise<T> => {
     const url = buildApiUrl(path, params);
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, { 
-      headers,
-      credentials: 'include',
-      mode: 'cors',
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || 'API request failed');
-    }
-
-    return response.json() as Promise<T>;
+    const response = await axiosClient.get<T>(url);
+    return response.data;
   },
 
-  post: async <T>(path: string, { token, data }: ApiOptions = {}): Promise<ApiResponse<T>> => {
-    const url = buildApiUrl(path);
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data)
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || 'API request failed');
-    }
-
-    return response.json();
+  post: async <T>(path: string, { data, params }: ApiOptions = {}): Promise<ApiResponse<T>> => {
+    const url = buildApiUrl(path, params);
+    const response = await axiosClient.post<ApiResponse<T>>(url, data);
+    return response.data;
   },
 
-  patch: async (path: string, { token, params }: ApiOptions = {}) => {
+  patch: async <T>(path: string, { data, params }: ApiOptions = {}): Promise<T> => {
     const url = buildApiUrl(path, params);
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || 'API request failed');
-    }
-
-    return response.json();
+    const response = await axiosClient.patch<T>(url, data);
+    return response.data;
   },
 
-  delete: async (path: string, { token, params }: ApiOptions = {}) => {
+  delete: async <T>(path: string, { params }: ApiOptions = {}): Promise<T> => {
     const url = buildApiUrl(path, params);
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || 'API request failed');
-    }
-
-    return response.json();
+    const response = await axiosClient.delete<T>(url, { params });
+    return response.data;
   }
-}; 
+};

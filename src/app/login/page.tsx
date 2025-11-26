@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -29,17 +31,10 @@ export default function LoginPage() {
         email,
         password
       });
+      const response = await axiosClient.get(url);
+      const data = response.data;
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.access_token) {
+      if (data.access_token) {
         login(data.access_token, {
           id: data.id,
           name: data.name,
@@ -49,9 +44,9 @@ export default function LoginPage() {
       } else {
         setError(data.detail || 'Login failed');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('An error occurred during login');
+      setError(err.response?.data?.detail || 'An error occurred during login');
     }
   };
 

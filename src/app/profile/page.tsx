@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { UserCircleIcon, HomeIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
 
 export default function ProfilePage() {
   // User info state
@@ -30,14 +31,9 @@ export default function ProfilePage() {
       setLoading(true);
       setError('');
       try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
         const url = buildApiUrl('/v1/superuser/me/get');
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        console.log(res, "res")
-        if (!res.ok) throw new Error('Failed to load user details');
-        const data = await res.json();
+        const response = await axiosClient.get(url);
+        const data = response.data;
         setUser({
           email: data.email || '',
           phone_number: data.phone_number || '',
@@ -59,35 +55,25 @@ export default function ProfilePage() {
     setCreateError('');
     setCreateSuccess('');
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
       const url = buildApiUrl('/v1/superuser/me/create');
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(createData),
-      });
-      if (res.ok) {
+      const response = await axiosClient.post(url, createData);
+      if (response.data) {
         setCreateSuccess('Superuser created successfully!');
         setCreateData({ email: '', password: '', phone_number: '' });
-      } else {
-        const data = await res.json();
-        if (typeof data.detail === 'string') {
-          setCreateError(data.detail);
-        } else if (Array.isArray(data.detail)) {
-          setCreateError(
-            data.detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ')
-          );
-        } else if (typeof data.detail === 'object' && data.detail !== null) {
-          setCreateError(JSON.stringify(data.detail));
-        } else {
-          setCreateError('Failed to create superuser');
-        }
       }
-    } catch (err) {
-      setCreateError('An error occurred');
+    } catch (err: any) {
+      const data = err.response?.data;
+      if (typeof data?.detail === 'string') {
+        setCreateError(data.detail);
+      } else if (Array.isArray(data?.detail)) {
+        setCreateError(
+          data.detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ')
+        );
+      } else if (typeof data?.detail === 'object' && data?.detail !== null) {
+        setCreateError(JSON.stringify(data.detail));
+      } else {
+        setCreateError('Failed to create superuser');
+      }
     } finally {
       setCreateLoading(false);
     }

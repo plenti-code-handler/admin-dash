@@ -5,20 +5,15 @@ import CouponTable from '@/components/coupons/CouponTable';
 import CreateCouponModal from '@/components/coupons/CreateCouponModal';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
+import { axiosFormClient } from '../../../../AxiosClient';
+import { buildApiUrl } from '@/config';
 
 export default function CouponsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleDeleteCoupon = async (couponId: string) => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
       await api.delete('/v1/superuser/coupon/delete', {
-        token,
         params: { coupon_id: couponId }
       });
 
@@ -32,9 +27,6 @@ export default function CouponsPage() {
 
   const handleCreateCoupon = async (couponData: any, file: File | null) => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      if (!token) throw new Error('No auth token found');
-
       const {
         code,
         name,
@@ -61,13 +53,8 @@ export default function CouponsPage() {
         formData.append('file', file);
       }
 
-      await fetch('/v1/superuser/coupon/create', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const url = buildApiUrl('/v1/superuser/coupon/create');
+      await axiosFormClient.post(url, formData);
 
       setIsCreateModalOpen(false);
       window.location.reload();
@@ -76,6 +63,7 @@ export default function CouponsPage() {
       alert('Failed to create coupon');
     }
   };
+
 
   return (
     <div className="space-y-6">

@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroico
 import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '@/types/order';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
 
 interface OrderTableProps {
   orderStatus: OrderStatus | '';
@@ -49,12 +50,6 @@ export default function OrderTable({ orderStatus, onOrderSelect }: OrderTablePro
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
       const url = buildApiUrl('/v1/superuser/order/active/get-all', {
         skip: (currentPage - 1) * itemsPerPage,
         limit: itemsPerPage,
@@ -63,24 +58,15 @@ export default function OrderTable({ orderStatus, onOrderSelect }: OrderTablePro
 
       logger.info('Fetching orders:', url);
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to fetch orders');
-      }
-
-      const data = await response.json();
+      const response = await axiosClient.get(url);
+      const data = response.data;
       setOrders(data.response);
       setTotalItems(data.total_response);
       setTotalPages(Math.ceil(data.total_response / itemsPerPage));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching orders:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to fetch orders';
+      // You might want to set an error state here
     } finally {
       setLoading(false);
     }

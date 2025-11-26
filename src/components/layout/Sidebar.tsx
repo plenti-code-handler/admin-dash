@@ -12,7 +12,6 @@ export default function Sidebar() {
     { name: 'Users', href: '/dashboard/users', icon: UsersIcon },
     { name: 'Vendors', href: '/dashboard/vendors', icon: BuildingStorefrontIcon },
     { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBagIcon },
-    { name: 'Payments', href: '/dashboard/payments', icon: CreditCardIcon },
     { name: 'Coupons', href: '/dashboard/coupons', icon: TicketIcon },
   ];
 
