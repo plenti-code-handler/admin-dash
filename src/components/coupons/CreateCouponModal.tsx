@@ -6,6 +6,8 @@ import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import type { CreateCouponData, DiscountType } from '@/types/coupon';
 import { buildApiUrl } from '@/config';
+import { axiosFormClient } from '../../../AxiosClient';
+
 
 interface CreateCouponModalProps {
   isOpen: boolean;
@@ -32,10 +34,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     setLoading(true);
     setError(null);
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      if (!token) throw new Error('No auth token found');
-
-      // Only include the required fields
       const {
         code,
         name,
@@ -63,24 +61,12 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
       }
 
       const url = buildApiUrl('/v1/superuser/coupon/create');
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Do NOT set Content-Type; browser will set it for FormData
-        },
-        body: form,
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || 'Failed to create coupon');
-      }
+      await axiosFormClient.post(url, form);
 
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create coupon');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to create coupon');
     } finally {
       setLoading(false);
     }

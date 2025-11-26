@@ -6,6 +6,8 @@ import type { Vendor } from '@/types/vendor';
 import Image from 'next/image';
 import { api } from '@/services/api';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
+
 
 interface BankAccount {
   account_number: string;
@@ -32,28 +34,12 @@ export default function VendorDetails({ vendor, onClose }: VendorDetailsProps) {
 
   const fetchBankDetails = async () => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
       const url = buildApiUrl('/v1/superuser/vendor/account-details/get', {
         vendor_id: vendor.id
       });
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch bank details');
-      }
-
-      const data = await response.json();
-      setBankDetails(data);
+      const response = await axiosClient.get(url);
+      setBankDetails(response.data);
     } catch (error) {
       logger.error('Error fetching bank details:', error);
       setError('Failed to load bank details');
@@ -63,14 +49,7 @@ export default function VendorDetails({ vendor, onClose }: VendorDetailsProps) {
   const toggleVendorActive = async () => {
     try {
       setLoading(true);
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
       const data = await api.patch('/v1/superuser/vendor/active/toggle', {
-        token,
         params: {
           vendor_id: vendor.id,
           toggle: !vendor.is_active

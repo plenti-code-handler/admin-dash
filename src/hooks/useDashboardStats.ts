@@ -19,25 +19,16 @@ export function useDashboardStats() {
         setLoading(true);
         setError(null);
 
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('token='))
-          ?.split('=')[1];
-
-        if (!token) {
-          throw new Error('Authentication token not found');
-        }
-
         const [
           userCount,
           vendorCount,
           orderCount,
           paymentTotal
         ] = await Promise.all([
-          dashboardService.getUserCount(token),
-          dashboardService.getVendorCount(token),
-          dashboardService.getOrderCount(token),
-          dashboardService.getPaymentTotal(token)
+          dashboardService.getUserCount(),
+          dashboardService.getVendorCount(),
+          dashboardService.getOrderCount(),
+          dashboardService.getPaymentTotal()
         ]);
 
         setStats({
@@ -58,4 +49,4 @@ export function useDashboardStats() {
   }, []);
 
   return { stats, loading, error };
-} 
+}

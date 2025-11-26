@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroico
 import { logger } from '@/utils/logger';
 import type { User } from '@/types/user';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
 
 interface UserTableProps {
   onUserSelect: (user: User) => void;
@@ -88,29 +89,13 @@ export default function UserTable({ onUserSelect, searchQuery }: UserTableProps)
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const url = buildApiUrl('/v1/superuser/user/get', {
         skip: (currentPage - 1) * itemsPerPage,
         limit: itemsPerPage
       });
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log(response);
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      const data = await response.json();
+      const response = await axiosClient.get(url);
+      const data = response.data;
       logger.info('Users response:', data);
 
       const transformedUsers = data.response.map((user: any) => ({

@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { buildApiUrl } from '@/config';
 import { useRouter } from 'next/navigation';
+import axiosClient from '../../../AxiosClient';
 
 const CACHE_KEY = 'dashboard_stats_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -105,18 +106,12 @@ export default function DashboardPage() {
       try {
         setVendorLoading(true);
         setVendorError(null);
-        const token = localStorage.getItem('token') || document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-        if (!token) throw new Error('No auth token found');
         const url = buildApiUrl('/v1/superuser/vendor/top/revenue/get', {
           start_date: dateToISTUnix(startDate),
           end_date: dateToISTUnix(endDate, true),
         });
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch top vendors');
-        const data = await res.json();
-        setTopVendors(data);
+        const response = await axiosClient.get(url);
+        setTopVendors(response.data);
       } catch (err: any) {
         setVendorError(err.message || 'Error fetching top vendors');
         setTopVendors([]);
@@ -209,84 +204,6 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Top Vendors by Revenue */}
-      <div className="mt-10 bg-white rounded-xl shadow-lg p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
-          <h2 className="text-lg font-semibold text-gray-800">Top Vendors by Revenue</h2>
-          <div className="flex gap-2 items-center">
-            <label className="text-sm text-gray-600">From</label>
-            <input
-              type="date"
-              value={pickerStart}
-              max={pickerEnd}
-              onChange={e => setPickerStart(e.target.value)}
-              className="border rounded px-2 py-1 text-sm"
-            />
-            <label className="text-sm text-gray-600">To</label>
-            <input
-              type="date"
-              value={pickerEnd}
-              min={pickerStart}
-              max={today.toISOString().slice(0,10)}
-              onChange={e => setPickerEnd(e.target.value)}
-              className="border rounded px-2 py-1 text-sm"
-            />
-            <button
-              onClick={() => { setStartDate(pickerStart); setEndDate(pickerEnd); }}
-              className="ml-2 px-4 py-1.5 rounded bg-[#5F22D9] text-white font-semibold text-sm shadow hover:bg-[#4b1aa8] transition"
-            >
-              Go
-            </button>
-          </div>
-        </div>
-        {vendorLoading ? (
-          <div className="py-8 text-center text-gray-400">Loading...</div>
-        ) : vendorError ? (
-          <div className="py-8 text-center text-red-500">{vendorError}</div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
-            <table className="min-w-full bg-white rounded-lg overflow-hidden">
-              <thead className="bg-[#f8fafc] sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vendor Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vendor ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topVendors.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-6 text-gray-400">No data found for this range.</td>
-                  </tr>
-                ) : (
-                  topVendors.map((vendor, idx) => (
-                    <tr
-                      key={vendor.vendor_id}
-                      className={`
-                        ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                        hover:bg-indigo-50 transition cursor-pointer
-                      `}
-                      onClick={() => router.push(`/vendors/${vendor.vendor_id}`)}
-                    >
-                      <td className="px-4 py-3 font-medium text-gray-700">{idx + 1}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900">{vendor.vendor_name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{vendor.vendor_id}</td>
-                      <td className="px-4 py-3">
-                        {vendor.total_revenue !== null
-                          ? <span className="font-semibold text-green-700">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(vendor.total_revenue)}</span>
-                          : <span className="text-gray-400">—</span>
-                        }
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      <div className="mb-10" /> {/* Add space after the table */}
 
       {/* Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

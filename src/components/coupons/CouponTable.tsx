@@ -5,6 +5,7 @@ import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import type { Coupon } from '@/types/coupon';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
 
 interface CouponTableProps {
   onDelete: (couponId: string) => void;
@@ -44,14 +45,11 @@ export default function CouponTable({ onDelete, refreshKey }: CouponTableProps) 
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-      const data = await api.get<CouponApiResponse>('/v1/superuser/coupon/get', {
-        token,
-        params: { skip }
+      const url = buildApiUrl('/v1/superuser/coupon/get', {
+        skip
       });
+      const response = await axiosClient.get(url);
+      const data = response.data;
       setCoupons(data.response);
       setTotal(data.total_response);
     } catch (error) {

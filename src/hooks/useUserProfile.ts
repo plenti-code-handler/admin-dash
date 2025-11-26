@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../AxiosClient';
 
 interface UserProfile {
   id: number;
@@ -23,25 +24,9 @@ export function useUserProfile() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const url = buildApiUrl('/v1/superuser/me/profile');
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-
-      const data = await response.json();
-      setProfile(data);
+      const response = await axiosClient.get(url);
+      setProfile(response.data);
     } catch (error) {
       logger.error('Error fetching profile:', error);
       setError(error instanceof Error ? error.message : 'Error fetching profile');
@@ -49,6 +34,6 @@ export function useUserProfile() {
       setLoading(false);
     }
   };
-
+  
   return { profile, loading, error, refetchProfile: fetchProfile };
 } 

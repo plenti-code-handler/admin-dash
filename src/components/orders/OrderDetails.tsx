@@ -4,6 +4,7 @@ import { XMarkIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { logger } from '@/utils/logger';
 import type { Order } from '@/types/order';
 import { buildApiUrl } from '@/config';
+import axiosClient from '../../../AxiosClient';
 
 interface OrderDetailsProps {
   order: Order;
@@ -36,27 +37,12 @@ export default function OrderDetails({ order, onClose }: OrderDetailsProps) {
 
   const fetchVendorDetails = async () => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-      
-      if (!token) {
-        throw new Error('No auth token found');
-      }
-
       const url = buildApiUrl('/v1/superuser/vendor/get', {
         vendor_id: order.vendor_id
       });
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch vendor details');
-      }
-
-      const data = await response.json();
+      const response = await axiosClient.get(url);
+      const data = response.data;
       setVendorName(data.vendor_name || 'Unknown Vendor');
     } catch (error) {
       logger.error('Error fetching vendor details:', error);
