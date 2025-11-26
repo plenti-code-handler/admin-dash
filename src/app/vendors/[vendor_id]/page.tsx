@@ -86,10 +86,10 @@ export default function VendorDetailsPage() {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading vendor details...</p>
+            <p className="text-gray-600 text-sm sm:text-base">Loading vendor details...</p>
           </div>
         </div>
       </div>
@@ -100,12 +100,12 @@ export default function VendorDetailsPage() {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <p className="text-red-500 text-lg mb-4">{error || 'No vendor found'}</p>
+            <p className="text-red-500 text-base sm:text-lg mb-4">{error || 'No vendor found'}</p>
             <button
               onClick={() => router.back()}
-              className="text-indigo-600 hover:text-indigo-800 underline"
+              className="text-indigo-600 hover:text-indigo-800 underline text-sm sm:text-base"
             >
               Go back
             </button>
@@ -121,18 +121,18 @@ export default function VendorDetailsPage() {
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 relative max-w-4xl mx-auto mt-8 mb-8 bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="flex-1 relative max-w-4xl mx-auto mt-4 sm:mt-8 mb-8 px-4 sm:px-6 lg:px-8 bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
           aria-label="Back"
-          className="absolute top-4 left-4 z-10 bg-[#5F22D9] hover:bg-[#4b1aa8] text-white rounded-full p-2 shadow transition focus:outline-none focus:ring-2 focus:ring-[#5F22D9]"
+          className="absolute top-3 sm:top-4 left-3 sm:left-4 z-10 bg-[#5F22D9] hover:bg-[#4b1aa8] text-white rounded-full p-1.5 sm:p-2 shadow transition focus:outline-none focus:ring-2 focus:ring-[#5F22D9]"
         >
-          <ArrowLeftIcon className="h-5 w-5" />
+          <ArrowLeftIcon className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
         {/* Backcover image */}
-        <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
+        <div className="relative h-32 sm:h-40 md:h-48 bg-gradient-to-br from-gray-200 to-gray-300">
           {vendor.backcover_url ? (
             <img
               src={vendor.backcover_url}
@@ -143,14 +143,14 @@ export default function VendorDetailsPage() {
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs sm:text-sm">
               No Backcover Image
             </div>
           )}
           
           {/* Logo as profile image */}
-          <div className="absolute left-1/2 -bottom-12 transform -translate-x-1/2">
-            <div className="w-24 h-24 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
+          <div className="absolute left-1/2 -bottom-8 sm:-bottom-12 transform -translate-x-1/2">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
               {vendor.logo_url ? (
                 <img
                   src={vendor.logo_url}
@@ -161,7 +161,7 @@ export default function VendorDetailsPage() {
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-600 text-2xl font-bold">
+                <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-600 text-lg sm:text-xl md:text-2xl font-bold">
                   {vendor.vendor_name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -170,11 +170,11 @@ export default function VendorDetailsPage() {
         </div>
 
         {/* Vendor Info */}
-        <div className="pt-16 pb-8 px-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{vendor.vendor_name}</h1>
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        <div className="pt-10 sm:pt-14 md:pt-16 pb-6 sm:pb-8 px-4 sm:px-6 md:px-8">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">{vendor.vendor_name}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.vendor_type === 'RESTAURANT' ? 'bg-red-100 text-red-700' :
                 vendor.vendor_type === 'BAKERY' ? 'bg-amber-100 text-amber-700' :
                 vendor.vendor_type === 'SUPERMARKET' ? 'bg-emerald-100 text-emerald-700' :
@@ -182,12 +182,12 @@ export default function VendorDetailsPage() {
               }`}>
                 {vendor.vendor_type}
               </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
               }`}>
                 {vendor.is_active ? 'Active' : 'Inactive'}
               </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.is_online ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
               }`}>
                 {vendor.is_online ? 'Online' : 'Offline'}
@@ -196,11 +196,11 @@ export default function VendorDetailsPage() {
           </div>
 
           {/* Action Button */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <button
               onClick={handleToggleActive}
               disabled={toggling}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 vendor.is_active
                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -211,63 +211,63 @@ export default function VendorDetailsPage() {
           </div>
 
           {/* Contact Information */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Contact Information</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Email</label>
-                <p className="mt-1 text-gray-900">{vendor.email}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">Email</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900 break-words">{vendor.email}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Phone Number</label>
-                <p className="mt-1 text-gray-900">{vendor.phone_number}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">Phone Number</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900">{vendor.phone_number}</p>
               </div>
             </div>
           </div>
 
           {/* Business Information */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Business Information</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">GST Number</label>
-                <p className="mt-1 text-gray-900">{vendor.gst_number || 'N/A'}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">GST Number</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900">{vendor.gst_number || 'N/A'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">FSSAI Number</label>
-                <p className="mt-1 text-gray-900">{vendor.fssai_number || 'N/A'}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">FSSAI Number</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900">{vendor.fssai_number || 'N/A'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">PAN Number</label>
-                <p className="mt-1 text-gray-900">{vendor.pan_number || 'N/A'}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">PAN Number</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900">{vendor.pan_number || 'N/A'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Vendor ID</label>
-                <p className="mt-1 text-gray-900 font-mono text-sm">{vendor.vendor_id}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">Vendor ID</label>
+                <p className="mt-1 text-xs sm:text-sm text-gray-900 font-mono break-all">{vendor.vendor_id}</p>
               </div>
             </div>
           </div>
 
           {/* Location Information */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Location</h2>
-            <div className="space-y-3">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Location</h2>
+            <div className="space-y-2 sm:space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-500">Address</label>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">Address</label>
                 <div className="mt-1 flex items-start">
-                  <MapPinIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-900">{vendor.address}</p>
+                  <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm sm:text-base text-gray-900 break-words">{vendor.address}</p>
                 </div>
               </div>
               {vendor.address_url && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Map Location</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-500">Map Location</label>
                   <p className="mt-1">
                     <a
                       href={vendor.address_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-indigo-600 hover:text-indigo-800 underline break-all"
+                      className="text-indigo-600 hover:text-indigo-800 underline break-all text-xs sm:text-sm"
                     >
                       {vendor.address_url}
                     </a>
@@ -278,12 +278,12 @@ export default function VendorDetailsPage() {
           </div>
 
           {/* Additional Information */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Additional Information</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Created At</label>
-                <p className="mt-1 text-gray-900">{formatDate(vendor.created_at)}</p>
+                <label className="text-xs sm:text-sm font-medium text-gray-500">Created At</label>
+                <p className="mt-1 text-sm sm:text-base text-gray-900">{formatDate(vendor.created_at)}</p>
               </div>
             </div>
           </div>
