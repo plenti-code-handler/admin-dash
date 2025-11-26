@@ -53,7 +53,7 @@ interface CatalogueRequest {
         };
       };
     };
-  };
+  } | null;
 }
 
 interface ApproveResponse {
@@ -133,7 +133,17 @@ export default function CatalogueRequestDetailPage() {
     }
   };
 
-  const renderCatalogueTable = (catalogue: CatalogueRequest['request_catalogue'], isRequest: boolean = false) => {
+  const renderCatalogueTable = (catalogue: CatalogueRequest['request_catalogue'] | null, isRequest: boolean = false) => {
+    if (!catalogue || !catalogue.item_types || Object.keys(catalogue.item_types).length === 0) {
+      return (
+        <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
+          <p className="text-sm sm:text-base text-gray-500">
+            {isRequest ? 'No catalogue data available' : 'No current catalogue available'}
+          </p>
+        </div>
+      );
+    }
+
     const itemTypes = Object.keys(catalogue.item_types);
     
     return (
@@ -239,6 +249,10 @@ export default function CatalogueRequestDetailPage() {
     );
   }
 
+  const hasCurrentCatalogue = request.current_catalogue && 
+    request.current_catalogue.item_types && 
+    Object.keys(request.current_catalogue.item_types).length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto mt-4 sm:mt-8 mb-8 px-4 sm:px-6 lg:px-8">
@@ -329,14 +343,20 @@ export default function CatalogueRequestDetailPage() {
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Current Catalogue</h3>
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Tier: <span className="font-medium text-gray-900">{request.current_catalogue.payout.tier}</span>
-                </p>
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  Threshold: <span className="font-medium text-gray-900">₹{request.current_catalogue.payout.threshold}</span>
-                </p>
-              </div>
+              {hasCurrentCatalogue && request.current_catalogue ? (
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Tier: <span className="font-medium text-gray-900">{request.current_catalogue.payout.tier}</span>
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    Threshold: <span className="font-medium text-gray-900">₹{request.current_catalogue.payout.threshold}</span>
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-300">
+                  <p className="text-xs sm:text-sm text-gray-500 italic">No current catalogue available</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -355,10 +375,12 @@ export default function CatalogueRequestDetailPage() {
           </div>
 
           {/* Current Catalogue */}
-          <div className="glass-card p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Current Catalogue</h2>
-            {renderCatalogueTable(request.current_catalogue, false)}
-          </div>
+          {hasCurrentCatalogue && (
+            <div className="glass-card p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Current Catalogue</h2>
+              {renderCatalogueTable(request.current_catalogue, false)}
+            </div>
+          )}
         </div>
       </div>
     </div>
