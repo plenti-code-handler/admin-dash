@@ -24,9 +24,10 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     console.log("❌ Response error:", error.response?.status);
-    
     const errorData = error.response?.data;
     const errorDetail = errorData?.detail;
+    const errorDetailString = errorDetail ? String(errorDetail) : '';
+
     
     // List of authentication error messages that should trigger logout
     const authErrorMessages = [
@@ -45,8 +46,8 @@ axiosClient.interceptors.response.use(
     const isAuthError = 
       error.response?.status === 401 || // Unauthorized
       error.response?.status === 403 || // Forbidden
-      (errorDetail && authErrorMessages.some(msg => 
-        errorDetail.toLowerCase().includes(msg.toLowerCase())
+      (errorDetailString && authErrorMessages.some(msg => 
+        errorDetailString.toLowerCase().includes(msg.toLowerCase())
       ));
     
     if (isAuthError) {

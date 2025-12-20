@@ -21,6 +21,8 @@ interface VendorDetails {
   address: string;
   is_active: boolean;
   is_online: boolean;
+  account_approved: boolean;
+  mou_signed: boolean;
   created_at: number;
   logo_url: string | null;
   backcover_url: string | null;
@@ -33,7 +35,8 @@ export default function VendorDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [toggling, setToggling] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   useEffect(() => {
     const fetchVendor = async () => {
@@ -52,23 +55,43 @@ export default function VendorDetailsPage() {
     if (vendor_id) fetchVendor();
   }, [vendor_id, refreshKey]);
 
-  // Toggle active status handler
-  const handleToggleActive = async () => {
+  // Approve vendor handler
+  const handleApproveVendor = async () => {
     if (!vendor) return;
     
     try {
-      setToggling(true);
-      const url = buildApiUrl('/v1/superuser/vendor/active/toggle', {
+      setApproving(true);
+      const url = buildApiUrl('/v1/superuser/vendor/account/true', {
         vendor_id,
-        toggle: vendor.is_active ? 'false' : 'true',
       });
       await axiosClient.patch(url);
       setRefreshKey((k) => k + 1);
+      alert('Vendor approved successfully');
     } catch (err) {
-      logger.error('Error toggling vendor status:', err);
-      alert('Failed to toggle status');
+      logger.error('Error approving vendor:', err);
+      alert('Failed to approve vendor');
     } finally {
-      setToggling(false);
+      setApproving(false);
+    }
+  };
+
+  // Deactivate vendor handler
+  const handleDeactivateVendor = async () => {
+    if (!vendor) return;
+    
+    try {
+      setDeactivating(true);
+      const url = buildApiUrl('/v1/superuser/vendor/account/false', {
+        vendor_id,
+      });
+      await axiosClient.patch(url);
+      setRefreshKey((k) => k + 1);
+      alert('Vendor deactivated successfully');
+    } catch (err) {
+      logger.error('Error deactivating vendor:', err);
+      alert('Failed to deactivate vendor');
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -173,7 +196,7 @@ export default function VendorDetailsPage() {
         <div className="pt-10 sm:pt-14 md:pt-16 pb-6 sm:pb-8 px-4 sm:px-6 md:px-8">
           <div className="mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">{vendor.vendor_name}</h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.vendor_type === 'RESTAURANT' ? 'bg-red-100 text-red-700' :
                 vendor.vendor_type === 'BAKERY' ? 'bg-amber-100 text-amber-700' :
@@ -183,9 +206,19 @@ export default function VendorDetailsPage() {
                 {vendor.vendor_type}
               </span>
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
+                vendor.mou_signed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {vendor.mou_signed ? 'MOU Signed' : 'MOU Not Signed'}
+              </span>
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
+                vendor.account_approved ? 'bg-blue-100 text-blue-700' : 'bg-orange-200 text-orange-700'
+              }`}>
+                {vendor.account_approved ? 'Account Approved' : 'Pending Approval'}
+              </span>
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
               }`}>
-                {vendor.is_active ? 'Active' : 'Inactive'}
+                {vendor.is_active ? 'Dashboard Active' : 'Dashboard Inactive'}
               </span>
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.is_online ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
@@ -195,19 +228,26 @@ export default function VendorDetailsPage() {
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="mb-4 sm:mb-6">
-            <button
-              onClick={handleToggleActive}
-              disabled={toggling}
-              className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
-                vendor.is_active
-                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {toggling ? 'Updating...' : (vendor.is_active ? 'Deactivate Vendor' : 'Activate Vendor')}
-            </button>
+          {/* Action Buttons */}
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
+            {!vendor.account_approved && (
+              <button
+                onClick={handleApproveVendor}
+                disabled={approving}
+                className="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {approving ? 'Approving...' : 'Approve Vendor'}
+              </button>
+            )}
+            {vendor.account_approved && (
+              <button
+                onClick={handleDeactivateVendor}
+                disabled={deactivating}
+                className="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deactivating ? 'Deactivating...' : 'Deactivate Vendor'}
+              </button>
+            )}
           </div>
 
           {/* Contact Information */}
