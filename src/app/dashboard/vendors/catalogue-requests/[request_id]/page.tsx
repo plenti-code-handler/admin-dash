@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import axiosClient from '../../../../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
@@ -61,6 +61,11 @@ interface ApproveResponse {
   message: string;
 }
 
+interface RejectResponse {
+  code: number;
+  message: string;
+}
+
 const SIZE_ORDER = ['SMALL', 'MEDIUM', 'LARGE'] as const;
 
 export default function CatalogueRequestDetailPage() {
@@ -72,6 +77,10 @@ export default function CatalogueRequestDetailPage() {
   const [approving, setApproving] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectSuccess, setRejectSuccess] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -110,6 +119,8 @@ export default function CatalogueRequestDetailPage() {
       setApproving(true);
       setApproveError(null);
       setApproveSuccess(false);
+      setRejectError(null);
+      setRejectSuccess(false);
 
       const url = buildApiUrl('/v1/superuser/catalogue/request/approve', {
         request_id: request_id as string
@@ -132,6 +143,40 @@ export default function CatalogueRequestDetailPage() {
       setApproving(false);
     }
   };
+
+  const handleReject = async () => {
+    if (!request_id) return;
+
+    try {
+      setRejecting(true);
+      setRejectError(null);
+      setRejectSuccess(false);
+      setApproveError(null);
+      setApproveSuccess(false);
+
+      const url = buildApiUrl('/v1/superuser/catalogue/request/reject', {
+        request_id: request_id as string
+      });
+
+      const response = await axiosClient.post<RejectResponse>(url);
+      
+      if (response.data.code === 200) {
+        setRejectSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard/vendors');
+        }, 2000);
+      } else {
+        setRejectError(response.data.message || 'Failed to reject request');
+      }
+    } catch (err: any) {
+      logger.error('Error rejecting catalogue request:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.detail || err.message || 'Failed to reject request';
+      setRejectError(errorMessage);
+    } finally {
+      setRejecting(false);
+    }
+  };
+
 
   const renderCatalogueTable = (catalogue: CatalogueRequest['request_catalogue'] | null, isRequest: boolean = false) => {
     if (!catalogue || !catalogue.item_types || Object.keys(catalogue.item_types).length === 0) {
@@ -268,35 +313,62 @@ export default function CatalogueRequestDetailPage() {
           
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Catalogue Request</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Catalogue Request</h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 {request.vendor_name} • {request.vendor_type}
               </p>
             </div>
             
-            {/* Approve Button */}
-            <button
-              onClick={handleApprove}
-              disabled={approving || approveSuccess}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-            >
-              {approving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                  <span className="text-sm sm:text-base">Approving...</span>
-                </>
-              ) : approveSuccess ? (
-                <>
-                  <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  <span className="text-sm sm:text-base">Approved!</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  <span className="text-sm sm:text-base">Approve Request</span>
-                </>
-              )}
-            </button>
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Approve Button */}
+              <button
+                onClick={handleApprove}
+                disabled={approving || approveSuccess || rejecting || rejectSuccess}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+              >
+                {approving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                    <span className="text-sm sm:text-base">Approving...</span>
+                  </>
+                ) : approveSuccess ? (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    <span className="text-sm sm:text-base">Approved!</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    <span className="text-sm sm:text-base">Approve Request</span>
+                  </>
+                )}
+              </button>
+
+              {/* Reject Button */}
+              <button
+                onClick={handleReject}
+                disabled={rejecting || rejectSuccess || approving || approveSuccess}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+              >
+                {rejecting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                    <span className="text-sm sm:text-base">Rejecting...</span>
+                  </>
+                ) : rejectSuccess ? (
+                  <>
+                    <XCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    <span className="text-sm sm:text-base">Rejected!</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    <span className="text-sm sm:text-base">Reject Request</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Success/Error Messages */}
@@ -314,12 +386,37 @@ export default function CatalogueRequestDetailPage() {
             </div>
           )}
 
+          {rejectSuccess && (
+            <div className="mt-4 rounded-md bg-green-50 p-3 sm:p-4 border border-green-200">
+              <div className="flex">
+              <CheckCircleIcon className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-green-800">Request Rejected</h3>
+                  <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-green-700">
+                    Catalogue request rejected successfully. Redirecting...
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {approveError && (
             <div className="mt-4 rounded-md bg-red-50 p-3 sm:p-4 border border-red-200">
               <div className="flex">
                 <div className="ml-0 sm:ml-3 min-w-0 flex-1">
                   <h3 className="text-sm font-medium text-red-800">Error</h3>
                   <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 break-words">{approveError}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {rejectError && (
+            <div className="mt-4 rounded-md bg-red-50 p-3 sm:p-4 border border-red-200">
+              <div className="flex">
+                <div className="ml-0 sm:ml-3 min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-red-800">Error</h3>
+                  <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 break-words">{rejectError}</div>
                 </div>
               </div>
             </div>

@@ -218,7 +218,7 @@ export default function VendorsPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="glass-card p-4 sm:p-6">
-        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Vendor Search</h1>
+        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Vendor Management</h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-1">Search vendors by name</p>
       </div>
 

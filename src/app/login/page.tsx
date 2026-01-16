@@ -82,7 +82,7 @@ export default function LoginPage() {
       {/* Right: Login Form */}
       <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white min-h-screen">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Login to your account</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Login to your account</h2>
           <p className="text-sm text-gray-600 mb-6">
             Want to register your business?{' '}
             <a href="/register" className="text-[#5F22D9] font-semibold hover:underline">Register</a>

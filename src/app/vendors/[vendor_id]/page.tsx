@@ -184,7 +184,7 @@ export default function VendorDetailsPage() {
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-600 text-lg sm:text-xl md:text-2xl font-bold">
+                <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-600 text-lg sm:text-xl md:text-2xl font-semibold">
                   {vendor.vendor_name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -195,7 +195,7 @@ export default function VendorDetailsPage() {
         {/* Vendor Info */}
         <div className="pt-10 sm:pt-14 md:pt-16 pb-6 sm:pb-8 px-4 sm:px-6 md:px-8">
           <div className="mb-4 sm:mb-6">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">{vendor.vendor_name}</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 mb-2">{vendor.vendor_name}</h1>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                 vendor.vendor_type === 'RESTAURANT' ? 'bg-red-100 text-red-700' :

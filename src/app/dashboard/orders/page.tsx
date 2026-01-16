@@ -44,7 +44,7 @@ export default function OrdersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="glass-card rounded-xl p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Order Management</h1>
       </div>
 
       <div className="flex gap-6">

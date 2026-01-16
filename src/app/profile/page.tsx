@@ -102,7 +102,7 @@ export default function ProfilePage() {
             <div className="text-red-500">{error}</div>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-gray-900">{user.email}</h1>
+              <h1 className="text-xl font-semibold text-gray-900">{user.email}</h1>
               <p className="text-gray-500">Phone: {user.phone_number}</p>
             </>
           )}
