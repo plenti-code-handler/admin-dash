@@ -24,6 +24,7 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     min_order_value: 0,
     max_discount: undefined as number | undefined,
     usage_limit: undefined as number | undefined,
+    public: false,
   });
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,8 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
         discount_value,
         min_order_value,
         max_discount,
-        usage_limit
+        usage_limit,
+        public: isPublic
       } = formData;
 
       const payload = {
@@ -51,7 +53,8 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
         discount_value,
         min_order_value,
         max_discount,
-        usage_limit
+        usage_limit,
+        public: isPublic
       };
 
       const form = new FormData();
@@ -98,41 +101,42 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+                <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className="rounded-lg text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 transition-colors"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
-                    <XMarkIcon className="h-6 w-6" />
+                    <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <TagIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                  </div>
-                  <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                <div className="w-full pr-8 sm:pr-0">
+                  <div className="mb-6 sm:mb-8">
+                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 sm:text-xl sm:leading-7">
                       Create New Coupon
                     </Dialog.Title>
+                    <p className="mt-1.5 text-xs text-gray-500 sm:text-sm">
+                      Fill in the details below to create a new coupon
+                    </p>
+                  </div>
 
                     {error && (
-                      <div className="mt-2 rounded-md bg-red-50 p-4">
+                      <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 sm:mb-6 sm:p-4">
                         <div className="flex">
-                          <div className="ml-3">
-                            <h3 className="text-sm font-medium text-red-800">Error</h3>
-                            <div className="mt-2 text-sm text-red-700">{error}</div>
+                          <div>
+                            <h3 className="text-xs font-medium text-red-800 sm:text-sm">Error</h3>
+                            <div className="mt-1 text-xs text-red-700 sm:text-sm">{error}</div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                           Coupon Code
                         </label>
                         <input
@@ -140,111 +144,163 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                           required
                           value={formData.code}
                           onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="Enter coupon code"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Coupon Name
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                          Coupon Description
                         </label>
                         <input
                           type="text"
                           required
                           value={formData.name}
                           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="Enter coupon description"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             Discount Type
                           </label>
                           <select
                             value={formData.discount_type}
                             onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value as DiscountType }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           >
                             <option value="PERCENTAGE">Percentage</option>
                             <option value="FIXED">Fixed Amount</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             Discount Value
                           </label>
                           <input
                             type="number"
                             required
                             min="0"
-                            value={formData.discount_value}
-                            onChange={(e) => setFormData(prev => ({ ...prev, discount_value: parseFloat(e.target.value) }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            value={formData.discount_value || ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                              setFormData(prev => ({ ...prev, discount_value: isNaN(val) ? 0 : val }));
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="0"
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             Minimum Order Value
                           </label>
                           <input
                             type="number"
                             required
                             min="0"
-                            value={formData.min_order_value}
-                            onChange={(e) => setFormData(prev => ({ ...prev, min_order_value: parseFloat(e.target.value) }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            value={formData.min_order_value || ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                              setFormData(prev => ({ ...prev, min_order_value: isNaN(val) ? 0 : val }));
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="0"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Maximum Discount (Optional)
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Maximum Discount</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="number"
                             min="0"
-                            value={formData.max_discount || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, max_discount: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            value={formData.max_discount ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                              setFormData(prev => ({ ...prev, max_discount: val !== undefined && isNaN(val) ? undefined : val }));
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="Leave empty for no limit"
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Usage Limit (Optional)
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Usage Limit</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="number"
                             min="0"
-                            value={formData.usage_limit || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, usage_limit: e.target.value ? parseInt(e.target.value) : undefined }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            value={formData.usage_limit ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? undefined : parseInt(e.target.value);
+                              setFormData(prev => ({ ...prev, usage_limit: val !== undefined && isNaN(val) ? undefined : val }));
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="Leave empty for unlimited"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Coupon Image (Optional)
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Coupon Image</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="file"
                             accept="image/*"
                             onChange={e => setFile(e.target.files?.[0] || null)}
-                            className="mt-1 block w-full text-sm text-gray-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-md file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-indigo-50 file:text-indigo-700
-                              hover:file:bg-indigo-100"
+                            className="block w-full text-xs text-gray-600
+                              file:mr-3 file:py-2 file:px-3
+                              file:rounded-lg file:border-0
+                              file:text-xs file:font-medium
+                              file:bg-gray-50 file:text-gray-700
+                              hover:file:bg-gray-100
+                              file:cursor-pointer
+                              cursor-pointer
+                              sm:text-sm
+                              sm:file:mr-4 sm:file:py-2.5 sm:file:px-4
+                              sm:file:text-sm"
                           />
                         </div>
                       </div>
-                      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                      <div className="pt-2">
+                        <div className="flex items-start sm:items-center">
+                          <input
+                            type="checkbox"
+                            id="public"
+                            checked={formData.public}
+                            onChange={(e) => setFormData(prev => ({ ...prev, public: e.target.checked }))}
+                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer sm:mt-0"
+                          />
+                          <label htmlFor="public" className="ml-2.5 block text-xs font-medium text-gray-700 cursor-pointer leading-relaxed sm:ml-3 sm:text-sm">
+                            Make this coupon publicly available
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                        <button
+                          type="button"
+                          className="inline-flex w-full justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-0 transition-colors sm:w-auto sm:px-5"
+                          onClick={onClose}
+                        >
+                          Cancel
+                        </button>
                         <button
                           type="submit"
                           disabled={loading}
-                          className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:ml-3 sm:w-auto disabled:opacity-50"
+                          className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-0 transition-colors sm:w-auto sm:px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {loading ? (
                             <>
@@ -258,16 +314,8 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                             'Create Coupon'
                           )}
                         </button>
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                          onClick={onClose}
-                        >
-                          Cancel
-                        </button>
                       </div>
                     </form>
-                  </div>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
