@@ -18,6 +18,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
     valid_from: undefined,
     valid_until: undefined,
     is_active: true,
+    public: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -36,6 +37,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_from: coupon.valid_from || undefined,
         valid_until: coupon.valid_until || undefined,
         is_active: coupon.is_active !== undefined ? coupon.is_active : true,
+        public: coupon.public !== undefined ? coupon.public : false,
       });
       setError(null);
     }
@@ -58,6 +60,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_from: formData.valid_from,
         valid_until: formData.valid_until,
         is_active: formData.is_active,
+        public: formData.public,
       };
   
       // Fix: Use path parameter instead of query parameter, and use correct api.patch format
@@ -118,67 +121,76 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+                <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    className="rounded-lg text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 transition-colors"
                     onClick={onClose}
                   >
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    <span className="sr-only">Close</span>
+                    <XMarkIcon className="h-5 w-5" aria-hidden="true" />
                   </button>
                 </div>
 
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <TagIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                  </div>
-                  <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+                <div className="w-full pr-8 sm:pr-0">
+                  <div className="mb-6 sm:mb-8">
+                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 sm:text-xl sm:leading-7">
                       Update Coupon
                     </Dialog.Title>
+                    <p className="mt-1.5 text-xs text-gray-500 sm:text-sm">
+                      Update the details below to modify the coupon
+                    </p>
+                  </div>
 
                     {error && (
-                      <div className="mb-4 rounded-md bg-red-50 p-4">
-                        <p className="text-sm text-red-800">{error}</p>
+                      <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 sm:mb-6 sm:p-4">
+                        <div className="flex">
+                          <div>
+                            <h3 className="text-xs font-medium text-red-800 sm:text-sm">Error</h3>
+                            <div className="mt-1 text-xs text-red-700 sm:text-sm">{error}</div>
+                          </div>
+                        </div>
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-                            Coupon Code *
-                          </label>
-                          <input
-                            type="text"
-                            name="code"
-                            id="code"
-                            required
-                            value={formData.code}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
-                          />
-                        </div>
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                      <div>
+                        <label htmlFor="code" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                          Coupon Code
+                        </label>
+                        <input
+                          type="text"
+                          name="code"
+                          id="code"
+                          required
+                          value={formData.code}
+                          onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="Enter coupon code"
+                        />
+                      </div>
 
-                        <div>
-                          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Name *
-                          </label>
-                          <input
-                            type="text"
-                            name="name"
-                            id="name"
-                            required
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
-                          />
-                        </div>
+                      <div>
+                        <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                          Coupon Description
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          id="name"
+                          required
+                          value={formData.name}
+                          onChange={handleChange}
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="Enter coupon description"
+                        />
+                      </div>
 
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label htmlFor="discount_type" className="block text-sm font-medium text-gray-700">
-                            Discount Type *
+                          <label htmlFor="discount_type" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            Discount Type
                           </label>
                           <select
                             name="discount_type"
@@ -186,7 +198,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                             required
                             value={formData.discount_type}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           >
                             <option value="PERCENTAGE">Percentage</option>
                             <option value="FIXED">Fixed Amount</option>
@@ -194,8 +206,8 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                         </div>
 
                         <div>
-                          <label htmlFor="discount_value" className="block text-sm font-medium text-gray-700">
-                            Discount Value *
+                          <label htmlFor="discount_value" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            Discount Value
                           </label>
                           <input
                             type="number"
@@ -206,13 +218,16 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                             step="0.01"
                             value={formData.discount_value}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="0"
                           />
                         </div>
+                      </div>
 
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label htmlFor="min_order_value" className="block text-sm font-medium text-gray-700">
-                            Minimum Order Value *
+                          <label htmlFor="min_order_value" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            Minimum Order Value
                           </label>
                           <input
                             type="number"
@@ -223,13 +238,15 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                             step="0.01"
                             value={formData.min_order_value}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="0"
                           />
                         </div>
 
                         <div>
-                          <label htmlFor="max_discount" className="block text-sm font-medium text-gray-700">
-                            Maximum Discount
+                          <label htmlFor="max_discount" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Maximum Discount</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="number"
@@ -242,13 +259,17 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                               ...prev,
                               max_discount: e.target.value ? parseFloat(e.target.value) : undefined
                             }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="Leave empty for no limit"
                           />
                         </div>
+                      </div>
 
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <div>
-                          <label htmlFor="usage_limit" className="block text-sm font-medium text-gray-700">
-                            Usage Limit
+                          <label htmlFor="usage_limit" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Usage Limit</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="number"
@@ -260,13 +281,38 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                               ...prev,
                               usage_limit: e.target.value ? parseInt(e.target.value) : undefined
                             }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                            placeholder="Leave empty for unlimited"
                           />
                         </div>
 
                         <div>
-                          <label htmlFor="valid_from" className="block text-sm font-medium text-gray-700">
-                            Valid From
+                          <label htmlFor="is_active" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            Status
+                          </label>
+                          <div className="pt-2">
+                            <div className="flex items-start sm:items-center">
+                              <input
+                                type="checkbox"
+                                name="is_active"
+                                id="is_active"
+                                checked={formData.is_active}
+                                onChange={handleChange}
+                                className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer sm:mt-0"
+                              />
+                              <label htmlFor="is_active" className="ml-2.5 block text-xs font-medium text-gray-700 cursor-pointer leading-relaxed sm:ml-3 sm:text-sm">
+                                Active
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                        <div>
+                          <label htmlFor="valid_from" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Valid From</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="date"
@@ -277,13 +323,14 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                               ...prev,
                               valid_from: parseDate(e.target.value)
                             }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
                         </div>
 
                         <div>
-                          <label htmlFor="valid_until" className="block text-sm font-medium text-gray-700">
-                            Valid Until
+                          <label htmlFor="valid_until" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Valid Until</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
                           </label>
                           <input
                             type="date"
@@ -294,45 +341,54 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                               ...prev,
                               valid_until: parseDate(e.target.value)
                             }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              name="is_active"
-                              id="is_active"
-                              checked={formData.is_active}
-                              onChange={handleChange}
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                              Active
-                            </label>
-                          </div>
                         </div>
                       </div>
 
-                      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto disabled:opacity-50"
-                        >
-                          {loading ? 'Updating...' : 'Update Coupon'}
-                        </button>
+                      <div className="pt-2">
+                        <div className="flex items-start sm:items-center">
+                          <input
+                            type="checkbox"
+                            name="public"
+                            id="public"
+                            checked={formData.public}
+                            onChange={handleChange}
+                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer sm:mt-0"
+                          />
+                          <label htmlFor="public" className="ml-2.5 block text-xs font-medium text-gray-700 cursor-pointer leading-relaxed sm:ml-3 sm:text-sm">
+                            Make this coupon publicly available
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <button
                           type="button"
                           onClick={onClose}
-                          className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                          className="inline-flex w-full justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-0 transition-colors sm:w-auto sm:px-5"
                         >
                           Cancel
                         </button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-0 transition-colors sm:w-auto sm:px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              Updating...
+                            </>
+                          ) : (
+                            'Update Coupon'
+                          )}
+                        </button>
                       </div>
                     </form>
-                  </div>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
