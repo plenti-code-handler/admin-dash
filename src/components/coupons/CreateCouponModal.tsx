@@ -24,6 +24,8 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     min_order_value: 0,
     max_discount: undefined as number | undefined,
     usage_limit: undefined as number | undefined,
+    valid_from: undefined as number | undefined,
+    valid_until: undefined as number | undefined,
     public: false,
   });
   const [file, setFile] = useState<File | null>(null);
@@ -54,6 +56,8 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
         min_order_value,
         max_discount,
         usage_limit,
+        ...(formData.valid_from != null && { valid_from: formData.valid_from }),
+        ...(formData.valid_until != null && { valid_until: formData.valid_until }),
         public: isPublic
       };
 
@@ -73,6 +77,17 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDateForInput = (timestamp: number | undefined) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * 1000);
+    return date.toISOString().split('T')[0];
+  };
+
+  const parseDate = (dateString: string) => {
+    if (!dateString) return undefined;
+    return Math.floor(new Date(dateString).getTime() / 1000);
   };
 
   return (
@@ -229,6 +244,32 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                             onWheel={(e) => e.currentTarget.blur()}
                             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                             placeholder="Leave empty for no limit"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Valid From</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={formatDateForInput(formData.valid_from)}
+                            onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseDate(e.target.value) }))}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                            <span>Valid Until</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={formatDateForInput(formData.valid_until)}
+                            onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseDate(e.target.value) }))}
+                            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
                         </div>
                       </div>
