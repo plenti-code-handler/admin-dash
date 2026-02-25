@@ -1,10 +1,25 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import axiosClient from '../../../../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
+
+interface PricingEntry {
+  item_type: string;
+  id: string;
+  name: string | null;
+  asp: number;
+  bags: { SMALL?: number; MEDIUM?: number; LARGE?: number };
+  cuts: { SMALL?: number; MEDIUM?: number; LARGE?: number };
+  descriptions: string[] | null;
+}
+
+interface Catalogue {
+  payout: { tier: string; threshold: number };
+  pricing: PricingEntry[];
+}
 
 interface CatalogueRequest {
   request_id: string;
@@ -12,48 +27,8 @@ interface CatalogueRequest {
   vendor_name: string;
   vendor_type: string;
   address: string;
-  request_catalogue: {
-    payout: {
-      tier: string;
-      threshold: number;
-    };
-    item_types: {
-      [key: string]: {
-        asp: number;
-        bags: {
-          SMALL: number;
-          MEDIUM: number;
-          LARGE: number;
-        };
-        cuts: {
-          SMALL: number;
-          MEDIUM: number;
-          LARGE: number;
-        };
-      };
-    };
-  };
-  current_catalogue: {
-    payout: {
-      tier: string;
-      threshold: number;
-    };
-    item_types: {
-      [key: string]: {
-        asp: number;
-        bags: {
-          SMALL: number;
-          MEDIUM: number;
-          LARGE: number;
-        };
-        cuts: {
-          SMALL: number;
-          MEDIUM: number;
-          LARGE: number;
-        };
-      };
-    };
-  } | null;
+  request_catalogue: Catalogue;
+  current_catalogue: Catalogue | null;
 }
 
 interface ApproveResponse {
@@ -65,8 +40,6 @@ interface RejectResponse {
   code: number;
   message: string;
 }
-
-const SIZE_ORDER = ['SMALL', 'MEDIUM', 'LARGE'] as const;
 
 export default function CatalogueRequestDetailPage() {
   const { request_id } = useParams();
@@ -178,8 +151,8 @@ export default function CatalogueRequestDetailPage() {
   };
 
 
-  const renderCatalogueTable = (catalogue: CatalogueRequest['request_catalogue'] | null, isRequest: boolean = false) => {
-    if (!catalogue || !catalogue.item_types || Object.keys(catalogue.item_types).length === 0) {
+  const renderCatalogueTable = (catalogue: Catalogue | null, isRequest: boolean = false, currentCatalogue: Catalogue | null = null) => {
+    if (!catalogue?.pricing?.length) {
       return (
         <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
           <p className="text-sm sm:text-base text-gray-500">
@@ -189,8 +162,12 @@ export default function CatalogueRequestDetailPage() {
       );
     }
 
-    const itemTypes = Object.keys(catalogue.item_types);
-    
+    const pricing = catalogue.pricing;
+    const currentPricingMap = new Map<string, PricingEntry>();
+    if (currentCatalogue?.pricing) {
+      currentCatalogue.pricing.forEach((e) => currentPricingMap.set(`${e.item_type}:${e.id}`, e));
+    }
+
     return (
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="inline-block min-w-full align-middle">
@@ -200,6 +177,9 @@ export default function CatalogueRequestDetailPage() {
                 <tr>
                   <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Item Type
+                  </th>
+                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Pricing
                   </th>
                   <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     ASP
@@ -214,6 +194,7 @@ export default function CatalogueRequestDetailPage() {
                 <tr>
                   <th></th>
                   <th></th>
+                  <th></th>
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">S</th>
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">M</th>
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">L</th>
@@ -223,34 +204,71 @@ export default function CatalogueRequestDetailPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {itemTypes.map((itemType) => {
-                  const itemData = catalogue.item_types[itemType];
+                {pricing.map((entry, index) => {
+                  const bags = entry.bags || {};
+                  const cuts = entry.cuts || {};
+                  const rowKey = `${entry.item_type}-${entry.id}-${index}`;
+                  const currentEntry = currentPricingMap.get(`${entry.item_type}:${entry.id}`);
+                  const isNew = isRequest && !currentEntry;
+                  const aspDelta = isRequest && currentEntry != null && currentEntry.asp !== entry.asp
+                    ? entry.asp - currentEntry.asp
+                    : null;
+
                   return (
-                    <tr key={itemType} className={isRequest ? 'bg-indigo-50/30' : ''}>
+                    <tr key={rowKey} className={isRequest ? 'bg-indigo-50/30' : ''}>
                       <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">
-                        <span className="hidden sm:inline">{itemType.replace(/_/g, ' ')}</span>
-                        <span className="sm:hidden">{itemType.replace(/_/g, ' ').split(' ')[0]}</span>
+                        <span className="hidden sm:inline">{entry.item_type.replace(/_/g, ' ')}</span>
+                        <span className="sm:hidden">{entry.item_type.replace(/_/g, ' ').split(' ')[0]}</span>
                       </td>
                       <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                        ₹{itemData.asp}
+                        <span className="inline-flex items-center gap-1.5">
+                          {entry.name ?? entry.id}
+                          {isNew && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-800">
+                              new
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          ₹{entry.asp}
+                          {aspDelta !== null && aspDelta !== 0 && (
+                            <span
+                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                aspDelta > 0
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                              title={aspDelta > 0 ? `+₹${aspDelta} from current` : `₹${aspDelta} from current`}
+                            >
+                              {aspDelta > 0 ? (
+                                <ArrowUpIcon className="w-3 h-3 flex-shrink-0" />
+                              ) : (
+                                <ArrowDownIcon className="w-3 h-3 flex-shrink-0" />
+                              )}
+                              {aspDelta > 0 ? `+${aspDelta}` : aspDelta}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center border-l-2 border-gray-200 whitespace-nowrap">
-                        ₹{itemData.bags.SMALL}
+                        ₹{bags.SMALL ?? '–'}
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{itemData.bags.MEDIUM}
+                        ₹{bags.MEDIUM ?? '–'}
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{itemData.bags.LARGE}
+                        ₹{bags.LARGE ?? '–'}
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center border-l-2 border-gray-200 whitespace-nowrap">
-                        ₹{itemData.cuts.SMALL}
+                        ₹{cuts.SMALL ?? '–'}
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{itemData.cuts.MEDIUM}
+                        ₹{cuts.MEDIUM ?? '–'}
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{itemData.cuts.LARGE}
+                        ₹{cuts.LARGE ?? '–'}
                       </td>
                     </tr>
                   );
@@ -294,9 +312,7 @@ export default function CatalogueRequestDetailPage() {
     );
   }
 
-  const hasCurrentCatalogue = request.current_catalogue && 
-    request.current_catalogue.item_types && 
-    Object.keys(request.current_catalogue.item_types).length > 0;
+  const hasCurrentCatalogue = (request.current_catalogue?.pricing?.length ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -468,7 +484,7 @@ export default function CatalogueRequestDetailPage() {
                 NEW REQUEST
               </span>
             </div>
-            {renderCatalogueTable(request.request_catalogue, true)}
+            {renderCatalogueTable(request.request_catalogue, true, request.current_catalogue)}
           </div>
 
           {/* Current Catalogue */}
