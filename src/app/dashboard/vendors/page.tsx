@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axiosClient from '../../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
+import VendorPayoutBulkUpdate from '@/components/vendors/VendorPayoutBulkUpdate';
 
 interface SearchVendorResult {
   vendor_id: string;
@@ -647,6 +648,8 @@ export default function VendorsPage() {
           </>
         )}
       </div>
+
+      <VendorPayoutBulkUpdate />
     </div>
   );
 }
