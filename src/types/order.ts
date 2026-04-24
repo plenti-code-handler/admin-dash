@@ -12,4 +12,30 @@ export interface Order {
   window_start_time: number;
   window_end_time: number;
   transaction_amount: number;
-} 
+}
+
+/** Superuser order search (`GET /v1/superuser/order/search/...`) */
+export interface SuperUserOrderSearchResult {
+  order_id: string;
+  order_code: string;
+  vendor_name: string;
+  username: string | null;
+  user_phone_number: string | null;
+  created_at: number;
+  order_status: string;
+}
+
+/** Superuser order detail (`GET /v1/superuser/order/get/{order_id}`) */
+export interface SuperUserOrderDetail {
+  order_id: string;
+  order_code: string;
+  vendor_name: string;
+  username: string;
+  user_phone_number: string;
+  window_start_time: number;
+  window_end_time: number;
+  transaction_amount: number;
+  created_at: number;
+  order_status: string;
+  payment_status: string;
+}

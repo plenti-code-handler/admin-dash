@@ -1,128 +1,81 @@
 'use client';
-import { useState } from 'react';
-import OrderTable from '@/components/orders/OrderTable';
-import OrderDetails from '@/components/orders/OrderDetails';
-import { OrderStatus } from '@/types/order';
-import type { Order } from '@/types/order';
-import { CheckCircleIcon, ClockIcon, TruckIcon } from '@heroicons/react/24/outline';
-
-const statusOptions = [
-  {
-    value: '',
-    label: 'All Orders',
-    icon: null,
-    description: 'View all orders regardless of status'
-  },
-  {
-    value: 'WAITING_FOR_PICKUP',
-    label: 'Waiting for Pickup',
-    icon: ClockIcon,
-    description: 'Orders waiting to be picked up',
-    color: 'yellow'
-  },
-  {
-    value: 'READY_TO_PICKUP',
-    label: 'Ready to Pickup',
-    icon: TruckIcon,
-    description: 'Orders ready for pickup',
-    color: 'blue'
-  },
-  {
-    value: 'PICKED_UP',
-    label: 'Picked Up',
-    icon: CheckCircleIcon,
-    description: 'Orders that have been picked up',
-    color: 'green'
-  }
-];
+import { useState, useCallback } from 'react';
+import { formatUnixSeconds } from '@/utils/datetime';
+import { useOrderCodeSearch } from '@/hooks/useOrderCodeSearch';
+import OrderSearchBottomSheet from '@/components/orders/OrderSearchBottomSheet';
+import { OrderSearchResultList } from '@/components/orders/OrderSearchResultList';
 
 export default function OrdersPage() {
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | ''>('');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { query, setQuery, results, activeQuery, loading, error, charsNeeded, minQueryLen } =
+    useOrderCodeSearch();
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const openSheet = useCallback((orderId: string) => {
+    setSelectedOrderId(orderId);
+    setSheetOpen(true);
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    setSelectedOrderId(null);
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="glass-card rounded-xl p-6">
+      <header className="glass-card rounded-xl p-6">
         <h1 className="text-2xl font-semibold text-gray-900">Order Management</h1>
-      </div>
+        <p className="mt-1 text-sm text-gray-600">
+          Type at least {minQueryLen} characters of an order code; results update as you type. Open
+          an order to see full details and process refunds.
+        </p>
+      </header>
 
-      <div className="flex gap-6">
-        {/* Main Content */}
-        <div className="flex-1">
-          <div className="glass-card rounded-xl p-6">
-            {/* Status Filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Filter by Status
-              </label>
-              <div className="grid grid-cols-4 gap-4">
-                {statusOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setSelectedStatus(option.value as OrderStatus | '')}
-                    className={`relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
-                      ${selectedStatus === option.value ? 
-                        option.color === 'yellow' ? 'border-yellow-500 bg-yellow-50' :
-                        option.color === 'blue' ? 'border-blue-500 bg-blue-50' :
-                        option.color === 'green' ? 'border-green-500 bg-green-50' :
-                        'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }
-                    `}
-                  >
-                    {option.icon && (
-                      <option.icon 
-                        className={`h-6 w-6 mb-2
-                          ${selectedStatus === option.value ?
-                            option.color === 'yellow' ? 'text-yellow-600' :
-                            option.color === 'blue' ? 'text-blue-600' :
-                            option.color === 'green' ? 'text-green-600' :
-                            'text-indigo-600'
-                            : 'text-gray-400'
-                          }
-                        `}
-                      />
-                    )}
-                    <span className={`text-sm font-medium
-                      ${selectedStatus === option.value ?
-                        option.color === 'yellow' ? 'text-yellow-900' :
-                        option.color === 'blue' ? 'text-blue-900' :
-                        option.color === 'green' ? 'text-green-900' :
-                        'text-indigo-900'
-                        : 'text-gray-900'
-                      }
-                    `}>
-                      {option.label}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1 text-center">
-                      {option.description}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Orders Table */}
-            <OrderTable 
-              orderStatus={selectedStatus} 
-              onOrderSelect={setSelectedOrder}
-            />
+      <section className="glass-card rounded-xl p-6">
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label htmlFor="order-search" className="block text-sm font-medium text-gray-700">
+              Order code
+            </label>
+            {loading && <span className="text-xs text-indigo-600">Searching…</span>}
           </div>
+          <input
+            id="order-search"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g. PLN-ABCD-1234"
+            autoComplete="off"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          {charsNeeded > 0 && (
+            <p className="mt-1.5 text-xs text-gray-500">
+              Enter {charsNeeded} more character{charsNeeded === 1 ? '' : 's'} to search.
+            </p>
+          )}
         </div>
 
-        {/* Order Details Sidebar */}
-        {selectedOrder && (
-          <div className="w-96">
-            <div className="glass-card rounded-xl p-6 sticky top-6">
-              <OrderDetails 
-                order={selectedOrder} 
-                onClose={() => setSelectedOrder(null)} 
-              />
-            </div>
-          </div>
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+            {error}
+          </p>
         )}
-      </div>
+
+        {!loading && results.length === 0 && activeQuery && !error && (
+          <p className="mt-6 text-center text-sm text-gray-500">No orders found for that query.</p>
+        )}
+
+        {results.length > 0 && (
+          <OrderSearchResultList
+            results={results}
+            onSelect={openSheet}
+            formatTime={formatUnixSeconds}
+          />
+        )}
+      </section>
+
+      <OrderSearchBottomSheet isOpen={sheetOpen} orderId={selectedOrderId} onClose={closeSheet} />
     </div>
   );
 }
