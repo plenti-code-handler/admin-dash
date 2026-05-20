@@ -29,6 +29,8 @@ export interface SuperUserOrderSearchResult {
 export interface SuperUserOrderDetail {
   order_id: string;
   order_code: string;
+  checkout_id: string;
+  vendor_id: string;
   vendor_name: string;
   username: string;
   user_phone_number: string;
@@ -38,4 +40,5 @@ export interface SuperUserOrderDetail {
   created_at: number;
   order_status: string;
   payment_status: string;
+  ticket_status: string | null;
 }

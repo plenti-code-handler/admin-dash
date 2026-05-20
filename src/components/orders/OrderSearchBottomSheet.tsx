@@ -1,5 +1,6 @@
 'use client';
-import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '@/config';
@@ -8,13 +9,7 @@ import { logger } from '@/utils/logger';
 import { getApiErrorDetail } from '@/utils/apiError';
 import { formatUnixSeconds } from '@/utils/datetime';
 import type { SuperUserOrderDetail } from '@/types/order';
-
-const REFUND_MULTIPLIERS = [
-  { label: '25%', value: 0.25 },
-  { label: '50%', value: 0.5 },
-  { label: '75%', value: 0.75 },
-  { label: '100%', value: 1 },
-] as const;
+import RaiseSupportTicketForm from '@/components/support/RaiseSupportTicketForm';
 
 const L = 'text-xs font-medium uppercase tracking-wide text-gray-500';
 const V = 'mt-0.5 text-base font-semibold text-gray-900';
@@ -80,69 +75,31 @@ export default function OrderSearchBottomSheet({ isOpen, onClose, orderId }: Pro
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [reason, setReason] = useState('');
-  const [multiplier, setMultiplier] = useState<number | null>(null);
-  const [refundBusy, setRefundBusy] = useState(false);
-  const [refundError, setRefundError] = useState<string | null>(null);
+  const loadOrder = useCallback(async () => {
+    if (!orderId) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const url = buildApiUrl(`/v1/superuser/order/get/${encodeURIComponent(orderId)}`);
+      const { data } = await axiosClient.get<SuperUserOrderDetail>(url);
+      setDetail(data);
+    } catch (err) {
+      setLoadError(getApiErrorDetail(err, 'Failed to load order'));
+      setDetail(null);
+      logger.error('Order detail fetch failed', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
 
   useEffect(() => {
     if (!isOpen || !orderId) {
       return;
     }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setLoadError(null);
-      setDetail(null);
-      setReason('');
-      setMultiplier(null);
-      setRefundError(null);
-      try {
-        const url = buildApiUrl(`/v1/superuser/order/get/${encodeURIComponent(orderId)}`);
-        const { data } = await axiosClient.get<SuperUserOrderDetail>(url);
-        if (!cancelled) {
-          setDetail(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(getApiErrorDetail(err, 'Failed to load order'));
-        }
-        logger.error('Order detail fetch failed', err);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, orderId]);
+    loadOrder();
+  }, [isOpen, orderId, loadOrder]);
 
-  const submitRefund = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderId || multiplier === null) {
-      setRefundError('Select a refund percentage.');
-      return;
-    }
-    const text = reason.trim();
-    if (!text) {
-      setRefundError('Enter a refund reason.');
-      return;
-    }
-    setRefundBusy(true);
-    setRefundError(null);
-    try {
-      const url = buildApiUrl(`/v1/superuser/order/refund/${encodeURIComponent(orderId)}`);
-      await axiosClient.post(url, { refund_reason: text, refund_multiplier: multiplier });
-      onClose();
-    } catch (err) {
-      setRefundError(getApiErrorDetail(err, 'Refund failed'));
-      logger.error('Refund failed', err);
-    } finally {
-      setRefundBusy(false);
-    }
-  };
+  const hasTicket = detail?.ticket_status != null;
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -193,62 +150,24 @@ export default function OrderSearchBottomSheet({ isOpen, onClose, orderId }: Pro
                     {loadError}
                   </p>
                 )}
-                {detail && !loading && (
+                {detail && !loading && orderId && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-3 rounded-xl border-2 border-gray-200 bg-gray-50/90 p-4 sm:grid-cols-2">
                       <LabeledBlock label="Customer" value={detail.username} />
                       <LabeledBlock label="Phone" value={detail.user_phone_number} tabular />
                     </div>
                     <OrderMetadata d={detail} />
-                    <form onSubmit={submitRefund} className="space-y-4 border-t border-gray-200 pt-6">
-                      <h3 className="text-base font-medium text-gray-900">Initiate refund</h3>
-                      <div>
-                        <label htmlFor="refund-reason" className="mb-1 block text-sm text-gray-700">
-                          Refund reason
-                        </label>
-                        <textarea
-                          id="refund-reason"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          placeholder="Describe why this refund is being issued"
-                          value={reason}
-                          onChange={(e) => setReason(e.target.value)}
-                          disabled={refundBusy}
-                        />
-                      </div>
-                      <div>
-                        <span className="mb-2 block text-sm text-gray-700">Refund amount</span>
-                        <div className="flex flex-wrap gap-2">
-                          {REFUND_MULTIPLIERS.map(({ label: lb, value }) => (
-                            <button
-                              key={value}
-                              type="button"
-                              disabled={refundBusy}
-                              onClick={() => setMultiplier(value)}
-                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                                multiplier === value
-                                  ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
-                                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                              } disabled:opacity-50`}
-                            >
-                              {lb}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {refundError && (
-                        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-                          {refundError}
-                        </p>
-                      )}
-                      <button
-                        type="submit"
-                        disabled={refundBusy}
-                        className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    {hasTicket && detail.checkout_id ? (
+                      <Link
+                        href={`/support/${encodeURIComponent(detail.checkout_id)}`}
+                        className="block w-full rounded-lg border border-orange-200 bg-orange-50 py-2.5 text-center text-sm font-medium text-orange-900 transition hover:bg-orange-100"
+                        onClick={onClose}
                       >
-                        {refundBusy ? 'Processing…' : 'Submit refund'}
-                      </button>
-                    </form>
+                        View support ticket
+                      </Link>
+                    ) : (
+                      <RaiseSupportTicketForm orderId={orderId} onSuccess={loadOrder} />
+                    )}
                   </div>
                 )}
               </div>
