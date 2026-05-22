@@ -9,9 +9,9 @@ import {
   isTicketUnresolved,
 } from '@/utils/supportFormat';
 import OrderRefundForm from '@/components/orders/OrderRefundForm';
+import { SUPPORT_TICKET_UPDATE_TEMPLATES } from '@/constants/supportTicket';
 import { fetchSupportTicket, updateSupportTicket } from '@/services/supportService';
 import { getApiErrorDetail } from '@/utils/apiError';
-import { buildRefundResolutionNote } from '@/utils/refundMessage';
 import type { SuperUserSupportTicket, SupportTicketTimelineEntry } from '@/types/support';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ToastNotice from '@/components/common/ToastNotice';
@@ -213,14 +213,8 @@ export default function SupportTicketView({ checkoutId }: Props) {
           <div className="glass-card rounded-xl p-4">
             <OrderRefundForm
               orderId={ticket.order_id}
-              onRefunded={async (multiplier) => {
-                const description = buildRefundResolutionNote(multiplier);
-                await updateSupportTicket(checkoutId, {
-                  description,
-                  update_type: 'resolve',
-                });
-                setNote(description);
-                showSuccess('Refund initiated and ticket resolved.');
+              onRefunded={async () => {
+                showSuccess('Refund initiated.');
                 await load(true);
               }}
             />
@@ -244,6 +238,26 @@ export default function SupportTicketView({ checkoutId }: Props) {
               onChange={(e) => setNote(e.target.value)}
               disabled={submitBusy}
             />
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500">Quick templates</p>
+              <div className="flex flex-col gap-2">
+                {SUPPORT_TICKET_UPDATE_TEMPLATES.map((template) => (
+                  <button
+                    key={template}
+                    type="button"
+                    disabled={submitBusy}
+                    onClick={() => setNote(template)}
+                    className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      note === template
+                        ? 'border-indigo-400 bg-indigo-50 text-indigo-900'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-white'
+                    } disabled:opacity-60`}
+                  >
+                    {template}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {(['update', 'resolve'] as const).map((id) => (
                 <button

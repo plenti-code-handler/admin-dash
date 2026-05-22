@@ -8,8 +8,8 @@ import { getApiErrorDetail } from '@/utils/apiError';
 type Props = {
   orderId: string;
   disabled?: boolean;
-  /** Runs after the refund API succeeds (e.g. resolve support ticket). */
-  onRefunded?: (multiplier: number) => void | Promise<void>;
+  /** Runs after the refund API succeeds. */
+  onRefunded?: () => void | Promise<void>;
   /** Optional hook when everything is done (e.g. close bottom sheet). */
   onComplete?: () => void;
   className?: string;
@@ -46,7 +46,7 @@ export default function OrderRefundForm({
         refund_multiplier: multiplier,
       });
       if (onRefunded) {
-        await onRefunded(multiplier);
+        await onRefunded();
       }
       setReason('');
       setMultiplier(null);
