@@ -10,6 +10,7 @@ import { getApiErrorDetail } from '@/utils/apiError';
 import { formatUnixSeconds } from '@/utils/datetime';
 import type { SuperUserOrderDetail } from '@/types/order';
 import RaiseSupportTicketForm from '@/components/support/RaiseSupportTicketForm';
+import { canRaiseSupportTicketForOrder } from '@/constants/supportTicket';
 
 const L = 'text-xs font-medium uppercase tracking-wide text-gray-500';
 const V = 'mt-0.5 text-base font-semibold text-gray-900';
@@ -99,7 +100,11 @@ export default function OrderSearchBottomSheet({ isOpen, onClose, orderId }: Pro
     loadOrder();
   }, [isOpen, orderId, loadOrder]);
 
-  const hasTicket = detail?.ticket_status != null;
+  const hasTicket = detail?.ticket_status != null && detail.ticket_status !== '';
+  const showRaiseTicketForm =
+    detail != null &&
+    orderId != null &&
+    canRaiseSupportTicketForOrder(detail.ticket_status, detail.order_status);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -165,9 +170,9 @@ export default function OrderSearchBottomSheet({ isOpen, onClose, orderId }: Pro
                       >
                         View support ticket
                       </Link>
-                    ) : (
+                    ) : showRaiseTicketForm ? (
                       <RaiseSupportTicketForm orderId={orderId} onSuccess={loadOrder} />
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
