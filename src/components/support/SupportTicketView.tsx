@@ -9,6 +9,7 @@ import {
   isTicketUnresolved,
 } from '@/utils/supportFormat';
 import OrderRefundForm from '@/components/orders/OrderRefundForm';
+import TicketCouponForm from '@/components/support/TicketCouponForm';
 import { SUPPORT_TICKET_UPDATE_TEMPLATES } from '@/constants/supportTicket';
 import { fetchSupportTicket, updateSupportTicket } from '@/services/supportService';
 import { getApiErrorDetail } from '@/utils/apiError';
@@ -18,6 +19,7 @@ import ToastNotice from '@/components/common/ToastNotice';
 import { useToast } from '@/hooks/useToast';
 
 type UpdateAction = 'resolve' | 'update';
+type ResolutionType = 'coupon' | 'refund';
 
 type Props = {
   checkoutId: string;
@@ -70,6 +72,7 @@ export default function SupportTicketView({ checkoutId }: Props) {
   const [action, setAction] = useState<UpdateAction | null>(null);
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [resolutionType, setResolutionType] = useState<ResolutionType>('refund');
   const { toast, dismiss, showSuccess, showError } = useToast();
 
   const load = useCallback(
@@ -209,22 +212,70 @@ export default function SupportTicketView({ checkoutId }: Props) {
           </div>
         </div>
 
-        {showUpdateForm && ticket.order_id && (
-          <div className="glass-card rounded-xl p-4">
-            <OrderRefundForm
-              orderId={ticket.order_id}
-              onRefunded={async () => {
-                showSuccess('Refund initiated.');
-                await load(true);
-              }}
-            />
-          </div>
-        )}
+        {showUpdateForm && (
+          <div className="glass-card space-y-4 rounded-xl p-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Resolution</h2>
+              <p className="mt-1 text-xs text-gray-500">
+                Choose how to resolve this ticket for the customer.
+              </p>
+            </div>
 
-        {showUpdateForm && !ticket.order_id && (
-          <p className="text-sm text-amber-800 rounded-lg bg-amber-50 px-3 py-2">
-            No order linked to this checkout — refund must be issued from Orders.
-          </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: 'coupon' as const, label: 'Coupon' },
+                  { id: 'refund' as const, label: 'Refund' },
+                ] as const
+              ).map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setResolutionType(id)}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                    resolutionType === id
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
+                      : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {resolutionType === 'coupon' && ticket.user_id && (
+              <TicketCouponForm
+                userId={ticket.user_id}
+                checkoutId={checkoutId}
+                onCreated={async (couponCode) => {
+                  showSuccess(`Coupon ${couponCode} created for this user.`);
+                  await load(true);
+                }}
+              />
+            )}
+
+            {resolutionType === 'coupon' && !ticket.user_id && (
+              <p className="text-sm text-amber-800 rounded-lg bg-amber-50 px-3 py-2">
+                No user linked to this ticket — coupon cannot be issued from here.
+              </p>
+            )}
+
+            {resolutionType === 'refund' && ticket.order_id && (
+              <OrderRefundForm
+                orderId={ticket.order_id}
+                onRefunded={async () => {
+                  showSuccess('Refund initiated.');
+                  await load(true);
+                }}
+              />
+            )}
+
+            {resolutionType === 'refund' && !ticket.order_id && (
+              <p className="text-sm text-amber-800 rounded-lg bg-amber-50 px-3 py-2">
+                No order linked to this checkout — refund must be issued from Orders.
+              </p>
+            )}
+          </div>
         )}
 
         {showUpdateForm && (

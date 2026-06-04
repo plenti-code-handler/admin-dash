@@ -23,6 +23,8 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const isUserSpecificCoupon = Boolean(coupon?.user_id);
+
   // Populate form when coupon data is available
   useEffect(() => {
     if (coupon) {
@@ -37,7 +39,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_from: coupon.valid_from || undefined,
         valid_until: coupon.valid_until || undefined,
         is_active: coupon.is_active !== undefined ? coupon.is_active : true,
-        public: coupon.public !== undefined ? coupon.public : false,
+        public: coupon.user_id ? false : coupon.public !== undefined ? coupon.public : false,
       });
       setError(null);
     }
@@ -60,7 +62,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_from: formData.valid_from,
         valid_until: formData.valid_until,
         is_active: formData.is_active,
-        public: formData.public,
+        public: isUserSpecificCoupon ? false : formData.public,
       };
   
       // Fix: Use path parameter instead of query parameter, and use correct api.patch format
@@ -354,12 +356,23 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                             id="public"
                             checked={formData.public}
                             onChange={handleChange}
-                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer sm:mt-0"
+                            disabled={isUserSpecificCoupon}
+                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0"
                           />
-                          <label htmlFor="public" className="ml-2.5 block text-xs font-medium text-gray-700 cursor-pointer leading-relaxed sm:ml-3 sm:text-sm">
+                          <label
+                            htmlFor="public"
+                            className={`ml-2.5 block text-xs font-medium leading-relaxed sm:ml-3 sm:text-sm ${
+                              isUserSpecificCoupon ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 cursor-pointer'
+                            }`}
+                          >
                             Make this coupon publicly available
                           </label>
                         </div>
+                        {isUserSpecificCoupon && (
+                          <p className="mt-1.5 text-xs text-gray-500">
+                            User-specific coupons cannot be made public.
+                          </p>
+                        )}
                       </div>
 
                       <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
