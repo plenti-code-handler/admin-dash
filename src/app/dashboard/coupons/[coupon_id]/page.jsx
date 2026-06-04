@@ -155,6 +155,34 @@ export default function CouponDetailsPage() {
             <p className="text-sm text-gray-900">{coupon.name}</p>
           </div>
 
+          {coupon.user_id && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                <p className="text-sm text-gray-900 font-mono break-all">{coupon.user_id}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">User Name</label>
+                <p className="text-sm text-gray-900">{coupon.user_name || '—'}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                {coupon.user_phone_number ? (
+                  <a
+                    href={`tel:${coupon.user_phone_number.replace(/\s/g, '')}`}
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    {coupon.user_phone_number}
+                  </a>
+                ) : (
+                  <p className="text-sm text-gray-900">—</p>
+                )}
+              </div>
+            </>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
             <p className="text-sm text-gray-900 capitalize">{coupon.discount_type.toLowerCase()}</p>
