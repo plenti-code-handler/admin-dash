@@ -1,128 +1,79 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
-import { buildApiUrl } from '@/config';
-import axiosClient from '../../../AxiosClient';
-
+import GoogleAuthButton from '@/components/common/GoogleAuthButton';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const { loading, error, handleGoogleAuth, handleGoogleError } = useGoogleAuth();
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/dashboard');
     }
   }, [isAuthenticated, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      const url = buildApiUrl('/v1/superuser/me/login', {
-        email,
-        password
-      });
-      const response = await axiosClient.get(url);
-      const data = response.data;
-
-      if (data.access_token) {
-        login(data.access_token, {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role
-        });
-      } else {
-        setError(data.detail || 'Login failed');
-      }
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.detail || 'An error occurred during login');
-    }
-  };
-
   return (
-    <div className="min-h-screen flex">
-      {/* Left: Branding */}
-      <div className="hidden md:flex flex-col justify-center items-start w-1/2 bg-[#5F22D9] relative">
-        {/* Optional: Add a background pattern here */}
-        <div className="absolute inset-0 opacity-30 z-0" style={{
-          backgroundImage: "url('/pattern.svg')", // Replace with your pattern asset
-          backgroundRepeat: 'repeat',
-          backgroundSize: 'cover'
-        }} />
-        <div className="relative z-10 px-16">
-          <div className="flex items-center mb-8">
-            <img
-              src="https://plenti-company-logo.s3.us-east-2.amazonaws.com/plenti-logo-white.png"
-              alt="plenti logo"
-              width={170}
-              height={170}
-              className="mr-4"
-            />
-          </div>
-          <div>
-            <span className="text-white text-2xl font-semibold leading-snug">
-              India&apos;s First<br />
-              Surplus Food Marketplace
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Right: Login Form */}
-      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white min-h-screen">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Login to your account</h2>
-          <p className="text-sm text-gray-600 mb-6">
-            Want to register your business?{' '}
-            <a href="/register" className="text-[#5F22D9] font-semibold hover:underline">Register</a>
+    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 py-10 sm:px-8 overflow-hidden bg-[#FAFAFB]">
+      
+      <main className="relative z-10 w-full max-w-[400px] login-enter">
+        {/* Brand */}
+        <div className="flex flex-col items-center rounded-2xl text-center border border-gray-200/80 bg-white/90 backdrop-blur-sm px-5 py-6 sm:px-7 sm:py-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
+          <Image
+            src="/images/plenti-logo.png"
+            alt="Plenti"
+            width={160}
+            height={54}
+            priority
+            className="h-10 sm:h-11 w-auto object-contain mb-8 rounded-lg"
+          />
+          <h1 className="text-[1.65rem] sm:text-[1.75rem] font-semibold tracking-tight text-gray-900 leading-tight">
+            Admin Dashboard
+          </h1>
+          <p className="mt-2 text-sm sm:text-[0.9375rem] text-gray-500 leading-relaxed max-w-[280px]">
+            Sign in with your  Plenti account
           </p>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {error && (
-              <div className="text-red-500 text-center">{error}</div>
+          <div className="relative px-6 py-6 sm:px-7 sm:py-7">
+            <div className={loading ? 'opacity-40 pointer-events-none select-none' : ''}>
+              {error && !loading && (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2.5 text-center text-[13px] text-red-600 leading-snug"
+                >
+                  {error}
+                </div>
+              )}
+              <div className="relative px-6 py-6 sm:px-7 sm:py-7">
+                <GoogleAuthButton
+                  onSuccess={handleGoogleAuth}
+                  onError={handleGoogleError}
+                  text="continue_with"
+                />
+              </div>
+            </div>
+
+            {loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-white/85 backdrop-blur-[2px] z-10">
+                <div className="relative h-9 w-9" aria-hidden>
+                  <div className="absolute inset-0 rounded-full border-[2.5px] border-[#5F22D9]/15" />
+                  <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-[#5F22D9] animate-spin" />
+                </div>
+                <p className="mt-3 text-sm font-medium text-gray-600">Signing in…</p>
+              </div>
             )}
-            <div>
-              <input
-                type="email"
-                required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#5F22D9] focus:border-[#5F22D9] text-gray-900"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#5F22D9] focus:border-[#5F22D9] text-gray-900"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-[#5F22D9] hover:bg-[#5F22D9] text-white font-semibold rounded-md transition"
-            >
-              Login
-            </button>
-          </form>
-          <div className="mt-4 text-center">
-            <a href="/forgot-password" className="text-sm text-gray-400 hover:text-[#5F22D9]">Forget Password</a>
           </div>
+          <p className="mt-8 text-center text-xs text-gray-400 tracking-wide">
+            Plenti internal access only
+          </p>
         </div>
-      </div>
+
+        {/* Sign-in panel */}
+
+      </main>
     </div>
   );
 }
