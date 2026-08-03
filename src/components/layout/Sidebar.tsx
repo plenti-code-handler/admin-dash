@@ -2,22 +2,34 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, UsersIcon, ShoppingBagIcon, CreditCardIcon, TicketIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import {
+  HomeIcon,
+  UsersIcon,
+  ShoppingBagIcon,
+  TicketIcon,
+  BuildingStorefrontIcon,
+} from '@heroicons/react/24/outline';
+import { hasModuleAccess } from '@/utils/permissions';
+import { useMyPermissions } from '@/hooks/useMyPermissions';
+
+const menuItems = [
+  { name: 'Home', href: '/dashboard', icon: HomeIcon, module: 'dashboard' },
+  { name: 'Users', href: '/dashboard/users', icon: UsersIcon, module: 'users' },
+  { name: 'Vendors', href: '/dashboard/vendors', icon: BuildingStorefrontIcon, module: 'vendors' },
+  { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBagIcon, module: 'orders' },
+  { name: 'Coupons', href: '/dashboard/coupons', icon: TicketIcon, module: 'coupons' },
+];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { permissions } = useMyPermissions();
 
-  const menuItems = [
-    { name: 'Home', href: '/dashboard', icon: HomeIcon },
-    { name: 'Users', href: '/dashboard/users', icon: UsersIcon },
-    { name: 'Vendors', href: '/dashboard/vendors', icon: BuildingStorefrontIcon },
-    { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBagIcon },
-    { name: 'Coupons', href: '/dashboard/coupons', icon: TicketIcon },
-  ];
+  const visibleItems = menuItems.filter((item) =>
+    hasModuleAccess(permissions, item.module)
+  );
 
   return (
     <aside className="w-16 md:w-20 flex flex-col items-center py-6 bg-[#5F22D9] min-h-screen">
-      {/* Logo section */}
       <div className="mb-10 flex justify-center w-full">
         <Link href="/dashboard" className="flex items-center justify-center">
           <Image
@@ -30,9 +42,8 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex flex-col gap-2 w-full">
-        {menuItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -47,7 +58,11 @@ export default function Sidebar() {
               `}
               title={item.name}
             >
-              <item.icon className={`w-6 h-6 mb-1 transition ${isActive ? 'text-white' : 'text-white/60 group-hover:text-white'}`} />
+              <item.icon
+                className={`w-6 h-6 mb-1 transition ${
+                  isActive ? 'text-white' : 'text-white/60 group-hover:text-white'
+                }`}
+              />
               <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 {item.name}
               </span>
