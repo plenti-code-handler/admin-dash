@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-enter {
+  animation: login-enter 420ms ease-out both;
+}
+
 .bg-pattern {
   background-color: #f8fafc;
   background-image: 
