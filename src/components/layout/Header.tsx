@@ -91,11 +91,11 @@ export default function Header() {
                   Your Profile
                 </Link>
                 <Link
-                  href="#"
+                  href="/permissions"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setIsProfileOpen(false)}
                 >
-                  Settings
+                  Manage permissions
                 </Link>
                 <button
                   type="button"
