@@ -68,6 +68,8 @@ export const PERMISSION_MODULES: PermissionModule[] = [
       { key: 'write', label: 'Write' },
       { key: 'create', label: 'Create' },
       { key: 'approve', label: 'Approve' },
+      { key: 'bank_account', label: 'Bank Account' },
+      { key: 'payout', label: 'Payout' },
     ],
   },
   {
