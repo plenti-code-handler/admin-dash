@@ -99,6 +99,14 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     ],
   },
   {
+    key: 'dinein_coupon',
+    label: 'Dine-in Coupons',
+    actions: [
+      { key: 'read', label: 'Read' },
+      { key: 'approve', label: 'Approve' },
+    ],
+  },
+  {
     key: 'payments',
     label: 'Payments',
     actions: [
