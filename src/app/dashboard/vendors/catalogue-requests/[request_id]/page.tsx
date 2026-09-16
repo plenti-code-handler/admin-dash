@@ -14,6 +14,7 @@ interface PricingEntry {
   bags: { SMALL?: number; MEDIUM?: number; LARGE?: number };
   cuts: { SMALL?: number; MEDIUM?: number; LARGE?: number };
   descriptions: string[] | null;
+  tcs?: boolean;
 }
 
 interface Catalogue {
@@ -184,14 +185,21 @@ export default function CatalogueRequestDetailPage() {
                   <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     ASP
                   </th>
+                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Packed item
+                  </th>
                   <th colSpan={3} className="px-2 py-3 sm:px-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
                     Bags
                   </th>
                   <th colSpan={3} className="px-2 py-3 sm:px-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
                     Cuts
                   </th>
+                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
+                    Descriptions
+                  </th>
                 </tr>
                 <tr>
+                  <th></th>
                   <th></th>
                   <th></th>
                   <th></th>
@@ -201,6 +209,7 @@ export default function CatalogueRequestDetailPage() {
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600 border-l-2 border-gray-300">S</th>
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">M</th>
                   <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">L</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -213,6 +222,11 @@ export default function CatalogueRequestDetailPage() {
                   const aspDelta = isRequest && currentEntry != null && currentEntry.asp !== entry.asp
                     ? entry.asp - currentEntry.asp
                     : null;
+
+                  const packedItem = Boolean(entry.tcs);
+                  const descriptions = Array.isArray(entry.descriptions)
+                    ? entry.descriptions.filter((d) => String(d).trim())
+                    : [];
 
                   return (
                     <tr key={rowKey} className={isRequest ? 'bg-indigo-50/30' : ''}>
@@ -252,6 +266,9 @@ export default function CatalogueRequestDetailPage() {
                           )}
                         </span>
                       </td>
+                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                        {packedItem ? 'true' : 'false'}
+                      </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center border-l-2 border-gray-200 whitespace-nowrap">
                         ₹{bags.SMALL ?? '–'}
                       </td>
@@ -269,6 +286,22 @@ export default function CatalogueRequestDetailPage() {
                       </td>
                       <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
                         ₹{cuts.LARGE ?? '–'}
+                      </td>
+                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 border-l-2 border-gray-200 min-w-[140px]">
+                        {descriptions.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {descriptions.map((text, descIndex) => (
+                              <span
+                                key={`${rowKey}-desc-${descIndex}`}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[10px] sm:text-xs"
+                              >
+                                {text}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">–</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -479,7 +512,7 @@ export default function CatalogueRequestDetailPage() {
           {/* Request Catalogue */}
           <div className="glass-card p-4 sm:p-6">
             <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Request Catalogue</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">New Catalogue</h2>
               <span className="self-start sm:self-auto px-2 sm:px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold whitespace-nowrap">
                 NEW REQUEST
               </span>
