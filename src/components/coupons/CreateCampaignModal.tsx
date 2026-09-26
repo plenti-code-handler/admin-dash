@@ -5,6 +5,14 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import { buildApiUrl } from '@/config';
 import axiosClient from '../../../AxiosClient';
+import {
+  formatUnixForIstDatetimeLocal,
+  parseIstDatetimeLocal,
+} from '@/utils/datetime';
+import QualificationBuilder, {
+  EMPTY_QUALIFICATION_QUERY,
+  toStoredQualification,
+} from './QualificationBuilder';
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -28,6 +36,7 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
     image_url: undefined as string | undefined,
     public: false,
   });
+  const [qualificationQuery, setQualificationQuery] = useState(EMPTY_QUALIFICATION_QUERY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,9 +45,11 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
     setLoading(true);
     setError(null);
     try {
+      const qualification = toStoredQualification(qualificationQuery);
       const payload = {
         ...formData,
         coupon_type: 'INAPP',
+        ...(qualification ? { qualification } : {}),
       };
 
       const url = buildApiUrl('/v1/superuser/coupon/campaign/create');
@@ -62,22 +73,12 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
         image_url: undefined,
         public: false,
       });
+      setQualificationQuery(EMPTY_QUALIFICATION_QUERY);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create campaign');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDateForInput = (timestamp: number | undefined) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp * 1000);
-    return date.toISOString().split('T')[0];
-  };
-
-  const parseDate = (dateString: string) => {
-    if (!dateString) return undefined;
-    return Math.floor(new Date(dateString).getTime() / 1000);
   };
 
   return (
@@ -106,7 +107,7 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
                 <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
@@ -313,24 +314,26 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                           <span>Valid From</span>
-                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                         </label>
                         <input
-                          type="date"
-                          value={formatDateForInput(formData.valid_from)}
-                          onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseDate(e.target.value) }))}
+                          type="datetime-local"
+                          step={900}
+                          value={formatUnixForIstDatetimeLocal(formData.valid_from)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseIstDatetimeLocal(e.target.value) }))}
                           className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                           <span>Valid Until</span>
-                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                         </label>
                         <input
-                          type="date"
-                          value={formatDateForInput(formData.valid_until)}
-                          onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseDate(e.target.value) }))}
+                          type="datetime-local"
+                          step={900}
+                          value={formatUnixForIstDatetimeLocal(formData.valid_until)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseIstDatetimeLocal(e.target.value) }))}
                           className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                         />
                       </div>
@@ -350,6 +353,11 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess }: Crea
                         </label>
                       </div>
                     </div>
+
+                    <QualificationBuilder
+                      query={qualificationQuery}
+                      onChange={setQualificationQuery}
+                    />
 
                     <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                       <button

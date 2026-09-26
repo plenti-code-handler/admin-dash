@@ -5,6 +5,15 @@ import { XMarkIcon, TagIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
 import { buildApiUrl } from '@/config';
+import QualificationBuilder, {
+  EMPTY_QUALIFICATION_QUERY,
+  fromStoredQualification,
+  toStoredQualification,
+} from './QualificationBuilder';
+import {
+  formatUnixForIstDatetimeLocal,
+  parseIstDatetimeLocal,
+} from '@/utils/datetime';
 
 export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }) {
   const [formData, setFormData] = useState({
@@ -19,11 +28,13 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
     valid_until: undefined,
     is_active: true,
     public: false,
+    user_id: '',
   });
+  const [qualificationQuery, setQualificationQuery] = useState(EMPTY_QUALIFICATION_QUERY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const isUserSpecificCoupon = Boolean(coupon?.user_id);
+  const isUserSpecificCoupon = Boolean(formData.user_id?.trim());
 
   // Populate form when coupon data is available
   useEffect(() => {
@@ -40,7 +51,9 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_until: coupon.valid_until || undefined,
         is_active: coupon.is_active !== undefined ? coupon.is_active : true,
         public: coupon.user_id ? false : coupon.public !== undefined ? coupon.public : false,
+        user_id: coupon.user_id || '',
       });
+      setQualificationQuery(fromStoredQualification(coupon.qualification));
       setError(null);
     }
   }, [coupon, isOpen]);
@@ -63,6 +76,8 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
         valid_until: formData.valid_until,
         is_active: formData.is_active,
         public: isUserSpecificCoupon ? false : formData.public,
+        user_id: formData.user_id?.trim() || null,
+        qualification: toStoredQualification(qualificationQuery),
       };
   
       // Fix: Use path parameter instead of query parameter, and use correct api.patch format
@@ -84,17 +99,6 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
       ...prev,
       [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || 0 : value)
     }));
-  };
-
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp * 1000);
-    return date.toISOString().split('T')[0];
-  };
-
-  const parseDate = (dateString) => {
-    if (!dateString) return undefined;
-    return Math.floor(new Date(dateString).getTime() / 1000);
   };
 
   return (
@@ -123,7 +127,7 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
                 <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
@@ -314,16 +318,17 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                         <div>
                           <label htmlFor="valid_from" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             <span>Valid From</span>
-                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                           </label>
                           <input
-                            type="date"
+                            type="datetime-local"
+                            step={900}
                             name="valid_from"
                             id="valid_from"
-                            value={formatDate(formData.valid_from)}
+                            value={formatUnixForIstDatetimeLocal(formData.valid_from)}
                             onChange={(e) => setFormData(prev => ({
                               ...prev,
-                              valid_from: parseDate(e.target.value)
+                              valid_from: parseIstDatetimeLocal(e.target.value)
                             }))}
                             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
@@ -332,20 +337,44 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                         <div>
                           <label htmlFor="valid_until" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             <span>Valid Until</span>
-                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                           </label>
                           <input
-                            type="date"
+                            type="datetime-local"
+                            step={900}
                             name="valid_until"
                             id="valid_until"
-                            value={formatDate(formData.valid_until)}
+                            value={formatUnixForIstDatetimeLocal(formData.valid_until)}
                             onChange={(e) => setFormData(prev => ({
                               ...prev,
-                              valid_until: parseDate(e.target.value)
+                              valid_until: parseIstDatetimeLocal(e.target.value)
                             }))}
                             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="user_id" className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                          <span>User ID</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="user_id"
+                          id="user_id"
+                          value={formData.user_id}
+                          onChange={(e) => {
+                            const user_id = e.target.value;
+                            setFormData((prev) => ({
+                              ...prev,
+                              user_id,
+                              ...(user_id.trim() ? { public: false } : {}),
+                            }));
+                          }}
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="usr_..."
+                        />
                       </div>
 
                       <div className="pt-2">
@@ -374,6 +403,11 @@ export default function UpdateCouponModal({ isOpen, onClose, onSuccess, coupon }
                           </p>
                         )}
                       </div>
+
+                      <QualificationBuilder
+                        query={qualificationQuery}
+                        onChange={setQualificationQuery}
+                      />
 
                       <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <button

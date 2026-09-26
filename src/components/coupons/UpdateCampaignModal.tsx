@@ -5,6 +5,15 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
 import { buildApiUrl } from '@/config';
 import axiosClient from '../../../AxiosClient';
+import QualificationBuilder, {
+  EMPTY_QUALIFICATION_QUERY,
+  fromStoredQualification,
+  toStoredQualification,
+} from './QualificationBuilder';
+import {
+  formatUnixForIstDatetimeLocal,
+  parseIstDatetimeLocal,
+} from '@/utils/datetime';
 
 interface Campaign {
   id: string;
@@ -32,24 +41,44 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
     valid_until: undefined as number | undefined,
     public: undefined as boolean | undefined,
   });
+  const [qualificationQuery, setQualificationQuery] = useState(EMPTY_QUALIFICATION_QUERY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (campaign) {
-      setFormData({
-        campaign_name: campaign.name || '',
-        name: '',
-        discount_type: 'PERCENTAGE',
-        discount_value: undefined,
-        min_order_value: undefined,
-        max_discount: undefined,
-        valid_from: undefined,
-        valid_until: undefined,
-        public: undefined,
-      });
-      setError(null);
-    }
+    if (!campaign || !isOpen) return;
+
+    let cancelled = false;
+    setFormData({
+      campaign_name: campaign.name || '',
+      name: '',
+      discount_type: 'PERCENTAGE',
+      discount_value: undefined,
+      min_order_value: undefined,
+      max_discount: undefined,
+      valid_from: undefined,
+      valid_until: undefined,
+      public: undefined,
+    });
+    setQualificationQuery(EMPTY_QUALIFICATION_QUERY);
+    setError(null);
+
+    const loadQualification = async () => {
+      try {
+        const url = buildApiUrl(`/v1/superuser/coupon/campaign/${campaign.id}/qualification`);
+        const response = await axiosClient.get(url);
+        if (!cancelled) {
+          setQualificationQuery(fromStoredQualification(response.data?.qualification));
+        }
+      } catch (err) {
+        logger.error('Error loading campaign qualification:', err);
+      }
+    };
+
+    loadQualification();
+    return () => {
+      cancelled = true;
+    };
   }, [campaign, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,6 +99,8 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
       if (formData.valid_from !== undefined) payload.valid_from = formData.valid_from;
       if (formData.valid_until !== undefined) payload.valid_until = formData.valid_until;
       if (formData.public !== undefined) payload.public = formData.public;
+      const qualification = toStoredQualification(qualificationQuery);
+      if (qualification) payload.qualification = qualification;
 
       const url = buildApiUrl(`/v1/superuser/coupon/campaign/update/${campaign.id}`);
       await axiosClient.patch(url, payload);
@@ -81,17 +112,6 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDateForInput = (timestamp: number | undefined) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp * 1000);
-    return date.toISOString().split('T')[0];
-  };
-
-  const parseDate = (dateString: string) => {
-    if (!dateString) return undefined;
-    return Math.floor(new Date(dateString).getTime() / 1000);
   };
 
   return (
@@ -120,7 +140,7 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
                 <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
@@ -259,24 +279,26 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                           <span>Valid From</span>
-                          <span className="ml-1 text-xs font-normal text-gray-500">(Updates all coupons)</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(IST · updates all coupons)</span>
                         </label>
                         <input
-                          type="date"
-                          value={formatDateForInput(formData.valid_from)}
-                          onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseDate(e.target.value) }))}
+                          type="datetime-local"
+                          step={900}
+                          value={formatUnixForIstDatetimeLocal(formData.valid_from)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseIstDatetimeLocal(e.target.value) }))}
                           className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                           <span>Valid Until</span>
-                          <span className="ml-1 text-xs font-normal text-gray-500">(Updates all coupons)</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(IST · updates all coupons)</span>
                         </label>
                         <input
-                          type="date"
-                          value={formatDateForInput(formData.valid_until)}
-                          onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseDate(e.target.value) }))}
+                          type="datetime-local"
+                          step={900}
+                          value={formatUnixForIstDatetimeLocal(formData.valid_until)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseIstDatetimeLocal(e.target.value) }))}
                           className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                         />
                       </div>
@@ -297,6 +319,12 @@ export default function UpdateCampaignModal({ isOpen, onClose, onSuccess, campai
                         </label>
                       </div>
                     </div>
+
+                    <QualificationBuilder
+                      query={qualificationQuery}
+                      onChange={setQualificationQuery}
+                      hint="Leave empty to keep existing coupon qualifications"
+                    />
 
                     <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                       <button

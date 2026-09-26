@@ -4,9 +4,17 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TagIcon } from '@heroicons/react/24/outline';
 import { api } from '@/services/api';
 import { logger } from '@/utils/logger';
-import type { CreateCouponData, DiscountType } from '@/types/coupon';
+import type { DiscountType } from '@/types/coupon';
 import { buildApiUrl } from '@/config';
 import { axiosFormClient } from '../../../AxiosClient';
+import {
+  formatUnixForIstDatetimeLocal,
+  parseIstDatetimeLocal,
+} from '@/utils/datetime';
+import QualificationBuilder, {
+  EMPTY_QUALIFICATION_QUERY,
+  toStoredQualification,
+} from './QualificationBuilder';
 
 
 interface CreateCouponModalProps {
@@ -27,7 +35,9 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     valid_from: undefined as number | undefined,
     valid_until: undefined as number | undefined,
     public: false,
+    user_id: '',
   });
+  const [qualificationQuery, setQualificationQuery] = useState(EMPTY_QUALIFICATION_QUERY);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +58,7 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
         public: isPublic
       } = formData;
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         code,
         name,
         discount_type,
@@ -58,8 +68,19 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
         usage_limit,
         ...(formData.valid_from != null && { valid_from: formData.valid_from }),
         ...(formData.valid_until != null && { valid_until: formData.valid_until }),
-        public: isPublic
+        public: isPublic,
       };
+
+      const userId = formData.user_id.trim();
+      if (userId) {
+        payload.user_id = userId;
+        payload.public = false;
+      }
+
+      const qualification = toStoredQualification(qualificationQuery);
+      if (qualification) {
+        payload.qualification = qualification;
+      }
 
       const form = new FormData();
       form.append('data', JSON.stringify(payload));
@@ -77,17 +98,6 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDateForInput = (timestamp: number | undefined) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp * 1000);
-    return date.toISOString().split('T')[0];
-  };
-
-  const parseDate = (dateString: string) => {
-    if (!dateString) return undefined;
-    return Math.floor(new Date(dateString).getTime() / 1000);
   };
 
   return (
@@ -116,7 +126,7 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
                 <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
@@ -251,24 +261,26 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             <span>Valid From</span>
-                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                           </label>
                           <input
-                            type="date"
-                            value={formatDateForInput(formData.valid_from)}
-                            onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseDate(e.target.value) }))}
+                            type="datetime-local"
+                            step={900}
+                            value={formatUnixForIstDatetimeLocal(formData.valid_from)}
+                            onChange={(e) => setFormData(prev => ({ ...prev, valid_from: parseIstDatetimeLocal(e.target.value) }))}
                             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
                             <span>Valid Until</span>
-                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                            <span className="ml-1 text-xs font-normal text-gray-500">(Optional · IST)</span>
                           </label>
                           <input
-                            type="date"
-                            value={formatDateForInput(formData.valid_until)}
-                            onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseDate(e.target.value) }))}
+                            type="datetime-local"
+                            step={900}
+                            value={formatUnixForIstDatetimeLocal(formData.valid_until)}
+                            onChange={(e) => setFormData(prev => ({ ...prev, valid_until: parseIstDatetimeLocal(e.target.value) }))}
                             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
                           />
                         </div>
@@ -315,20 +327,51 @@ export default function CreateCouponModal({ isOpen, onClose, onSuccess }: Create
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5 sm:text-sm sm:mb-2">
+                          <span>User ID</span>
+                          <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.user_id}
+                          onChange={(e) => {
+                            const user_id = e.target.value;
+                            setFormData((prev) => ({
+                              ...prev,
+                              user_id,
+                              ...(user_id.trim() ? { public: false } : {}),
+                            }));
+                          }}
+                          className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5"
+                          placeholder="usr_..."
+                        />
+                      </div>
                       <div className="pt-2">
                         <div className="flex items-start sm:items-center">
                           <input
                             type="checkbox"
                             id="public"
                             checked={formData.public}
+                            disabled={Boolean(formData.user_id.trim())}
                             onChange={(e) => setFormData(prev => ({ ...prev, public: e.target.checked }))}
-                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer sm:mt-0"
+                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-0 focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0"
                           />
-                          <label htmlFor="public" className="ml-2.5 block text-xs font-medium text-gray-700 cursor-pointer leading-relaxed sm:ml-3 sm:text-sm">
+                          <label htmlFor="public" className={`ml-2.5 block text-xs font-medium leading-relaxed sm:ml-3 sm:text-sm ${formData.user_id.trim() ? "text-gray-400 cursor-not-allowed" : "text-gray-700 cursor-pointer"}`}>
                             Make this coupon publicly available
                           </label>
                         </div>
+                        {formData.user_id.trim() ? (
+                          <p className="mt-1.5 text-xs text-gray-500">
+                            Assigned coupons cannot be public.
+                          </p>
+                        ) : null}
                       </div>
+
+                      <QualificationBuilder
+                        query={qualificationQuery}
+                        onChange={setQualificationQuery}
+                      />
                       
                       <div className="pt-4 border-t border-gray-100 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <button
