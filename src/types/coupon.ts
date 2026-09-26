@@ -2,7 +2,7 @@ export type DiscountType = 'PERCENTAGE' | 'FIXED';
 
 export type QualificationCombinator = 'and' | 'or';
 export type QualificationField = 'new_user' | 'order_count' | 'service_location';
-export type QualificationOperator = '=' | '<' | '<=' | '>=' | '>' | 'in' | 'notIn';
+export type QualificationOperator = '=' | '!=' | '<' | '<=' | '>=' | '>';
 
 export interface QualificationRule {
   field: QualificationField;
