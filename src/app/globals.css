@@ -69,3 +69,29 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
+
+.qualification-query-builder .queryBuilder {
+  font-size: 0.8125rem;
+}
+
+.qualification-query-builder .ruleGroup {
+  background: transparent;
+}
+
+.qualification-query-builder select,
+.qualification-query-builder input:not([type='checkbox']) {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  background: #fff;
+  color: #111827;
+}
+
+.qualification-query-builder button {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
