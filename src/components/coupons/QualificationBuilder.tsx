@@ -48,11 +48,11 @@ function getQualificationFields(serviceLocations: LocationOption[]): Field[] {
       label: 'Service location',
       valueEditorType: 'select',
       values: serviceLocations,
-      defaultOperator: 'in',
+      defaultOperator: '=',
       defaultValue: serviceLocations[0]?.name ?? '',
       operators: [
-        { name: 'in', value: 'in', label: 'in' },
-        { name: 'notIn', value: 'notIn', label: 'not in' },
+        { name: '=', value: '=', label: '=' },
+        { name: '!=', value: '!=', label: '!=' },
       ],
     },
   ];
@@ -84,7 +84,7 @@ function normalizeNode(node: RuleType | RuleGroupType): QualificationRule | Qual
   }
 
   const field = node.field as QualificationField;
-  const operator = node.operator as QualificationOperator;
+  let operator = node.operator as QualificationOperator;
   const rawValue = node.value as unknown;
   let value: QualificationRule['value'] = rawValue as QualificationRule['value'];
 
@@ -94,14 +94,14 @@ function normalizeNode(node: RuleType | RuleGroupType): QualificationRule | Qual
     const parsed = Number(rawValue);
     value = Number.isFinite(parsed) ? parsed : 0;
   } else if (field === 'service_location') {
-    if (typeof rawValue === 'string') {
-      value = rawValue.trim() ? [rawValue.trim()] : [];
-    } else if (Array.isArray(rawValue)) {
-      value = rawValue.map((part) => String(part).trim()).filter(Boolean);
+    if (node.operator === 'in' || node.operator === '=') operator = '=';
+    if (node.operator === 'notIn' || node.operator === '!=') operator = '!=';
+    if (Array.isArray(rawValue)) {
+      value = String(rawValue[0] ?? '').trim();
     } else {
-      value = rawValue == null ? [] : [String(rawValue)];
+      value = rawValue == null ? '' : String(rawValue).trim();
     }
-    if (!value.length) return null;
+    if (!value) return null;
   }
 
   return { field, operator, value };
@@ -133,8 +133,12 @@ export function fromStoredQualification(
         rules: node.rules.map(hydrate),
       };
     }
-    if (node.field === 'service_location' && Array.isArray(node.value)) {
-      return { ...node, value: node.value[0] ?? '' };
+    if (node.field === 'service_location') {
+      let operator = node.operator as string;
+      if (operator === 'in') operator = '=';
+      if (operator === 'notIn') operator = '!=';
+      const value = Array.isArray(node.value) ? (node.value[0] ?? '') : node.value;
+      return { ...node, operator, value } as RuleType;
     }
     return node as RuleType;
   };
@@ -210,7 +214,6 @@ export default function QualificationBuilder({
           fields={fields}
           query={query}
           onQueryChange={onChange}
-          listsAsArrays
           controlClassnames={{
             queryBuilder: 'queryBuilder-branches',
           }}
