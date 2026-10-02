@@ -6,26 +6,6 @@ import axiosClient from '../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
 
-type VendorPayoutStatus = 'COMPLETED' | 'FAILED' | 'PROCESSING';
-
-const PAYOUT_STATUS_OPTIONS: {
-  value: VendorPayoutStatus;
-  activeClassName: string;
-}[] = [
-  {
-    value: 'COMPLETED',
-    activeClassName: 'border-green-600 bg-green-50 text-green-800 ring-2 ring-green-200',
-  },
-  {
-    value: 'FAILED',
-    activeClassName: 'border-red-600 bg-red-50 text-red-800 ring-2 ring-red-200',
-  },
-  {
-    value: 'PROCESSING',
-    activeClassName: 'border-amber-600 bg-amber-50 text-amber-800 ring-2 ring-amber-200',
-  },
-];
-
 function parsePayoutIdsFromText(text: string): string[] {
   const lines = text.split(/\r?\n/);
   const seen = new Set<string>();
@@ -42,7 +22,7 @@ function parsePayoutIdsFromText(text: string): string[] {
 export default function VendorPayoutBulkUpdate() {
   const [pasteInput, setPasteInput] = useState('');
   const [payoutIds, setPayoutIds] = useState<string[]>([]);
-  const [status, setStatus] = useState<VendorPayoutStatus>('COMPLETED');
+  const [statusBool, setStatusBool] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
@@ -83,12 +63,12 @@ export default function VendorPayoutBulkUpdate() {
       setFeedback(null);
 
       const url = buildApiUrl('/v1/superuser/vendor/payout/update', {
-        status,
+        status: statusBool,
       });
 
       const response = await axiosClient.patch<{
         message?: string;
-        status?: VendorPayoutStatus;
+        status?: boolean;
       }>(url, { payout_ids: payoutIds });
 
       const msg =
@@ -121,6 +101,9 @@ export default function VendorPayoutBulkUpdate() {
         </h2>
         <p className="mt-0.5 text-xs text-gray-500">
           Paste payout IDs, one per line, then mark them completed or failed.
+        </p>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          Paste payout IDs (one per line), choose COMPLETED or FAILED, then submit.
         </p>
       </div>
 
@@ -168,23 +151,34 @@ export default function VendorPayoutBulkUpdate() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 lg:justify-end">
-          {PAYOUT_STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                setStatus(option.value);
-                setFeedback(null);
-              }}
-              className={`inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                status === option.value
-                  ? option.activeClassName
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {option.value}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setStatusBool(true);
+              setFeedback(null);
+            }}
+            className={`inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+              statusBool
+                ? 'border-green-600 bg-green-50 text-green-800 ring-2 ring-green-200'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            COMPLETED
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusBool(false);
+              setFeedback(null);
+            }}
+            className={`inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+              !statusBool
+                ? 'border-red-600 bg-red-50 text-red-800 ring-2 ring-red-200'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            FAILED
+          </button>
           <button
             type="button"
             onClick={handleSubmit}
