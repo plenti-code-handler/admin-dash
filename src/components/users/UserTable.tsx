@@ -1,227 +1,245 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { logger } from '@/utils/logger';
-import type { User } from '@/types/user';
 import { buildApiUrl } from '@/config';
+import { getApiErrorDetail } from '@/utils/apiError';
 import axiosClient from '../../../AxiosClient';
 
-interface UserTableProps {
-  onUserSelect: (user: User) => void;
-  searchQuery: string;
-}
-
-// Helper function to format date
-const formatDate = (timestamp: string | number | null) => {
-  try {
-    if (!timestamp) return 'N/A';
-    
-    const date = new Date(Number(timestamp) * 1000);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
-    }
-    
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid Date';
-  }
+export type DirectoryUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  joinedDate: string;
 };
 
-// Helper function to handle null/undefined/NaN values
-const formatValue = (value: any, defaultValue = 'N/A') => {
-  if (value === null || value === undefined || Number.isNaN(value)) {
+interface UserTableProps {
+  onUserSelect: (user: DirectoryUser) => void;
+  selectedId: string | null;
+}
+
+const PAGE_SIZE = 10;
+
+function formatDate(timestamp: string | number | null) {
+  if (!timestamp) return 'N/A';
+  const date = new Date(Number(timestamp) * 1000);
+  if (Number.isNaN(date.getTime())) return 'Invalid Date';
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function formatValue(value: unknown, defaultValue = 'N/A') {
+  if (value === null || value === undefined || (typeof value === 'number' && Number.isNaN(value))) {
     return defaultValue;
   }
   return String(value);
-};
+}
 
-export default function UserTable({ onUserSelect, searchQuery }: UserTableProps) {
-  const [users, setUsers] = useState<User[]>([]);
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`;
+  return (letters || '?').toUpperCase();
+}
+
+export default function UserTable({ onUserSelect, selectedId }: UserTableProps) {
+  const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [localSearch, setLocalSearch] = useState('');
-  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchUsers();
-  }, [currentPage, searchQuery]);
+    let cancelled = false;
 
-  // Filter users based on search query
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const url = buildApiUrl('/v1/superuser/user/get', {
+          skip: (currentPage - 1) * PAGE_SIZE,
+          limit: PAGE_SIZE,
+        });
+        const response = await axiosClient.get(url);
+        if (cancelled) return;
+
+        const data = response.data;
+        const transformedUsers: DirectoryUser[] = (data.response ?? []).map(
+          (user: {
+            id?: unknown;
+            name?: unknown;
+            email?: unknown;
+            phone_number?: unknown;
+            is_active?: boolean;
+            created_at?: string | number | null;
+          }) => ({
+            id: formatValue(user.id),
+            name: formatValue(user.name),
+            email: formatValue(user.email),
+            phone: formatValue(user.phone_number),
+            status: user.is_active ? 'active' : 'inactive',
+            joinedDate: formatDate(user.created_at ?? null),
+          })
+        );
+
+        setUsers(transformedUsers);
+      } catch (err) {
+        if (cancelled) return;
+        logger.error('Error fetching users:', err);
+        setError(getApiErrorDetail(err, 'Error fetching users'));
+        setUsers([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage]);
+
   const filteredUsers = useMemo(() => {
-    const searchTerm = localSearch.toLowerCase();
-    return users.filter(user => 
-      user.name?.toLowerCase().includes(searchTerm) ||
-      user.email.toLowerCase().includes(searchTerm) ||
-      user.phone_number?.includes(searchTerm)
+    const searchTerm = localSearch.trim().toLowerCase();
+    if (!searchTerm) return users;
+    return users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchTerm) ||
+        user.email.toLowerCase().includes(searchTerm) ||
+        user.phone.includes(searchTerm)
     );
   }, [users, localSearch]);
 
-  // Handle next page
-  const handleNextPage = () => {
-    setCurrentPage(currentPage => {
-      const nextPage = currentPage + 1;
-      logger.info('Moving to next page:', nextPage);
-      return nextPage;
-    });
-  };
-
-  // Handle previous page
-  const handlePrevPage = () => {
-    setCurrentPage(currentPage => {
-      const prevPage = Math.max(1, currentPage - 1);
-      logger.info('Moving to previous page:', prevPage);
-      return prevPage;
-    });
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const url = buildApiUrl('/v1/superuser/user/get', {
-        skip: (currentPage - 1) * itemsPerPage,
-        limit: itemsPerPage
-      });
-
-      const response = await axiosClient.get(url);
-      const data = response.data;
-      logger.info('Users response:', data);
-
-      const transformedUsers = data.response.map((user: any) => ({
-        id: formatValue(user.id, 'N/A'),
-        name: formatValue(user.name, 'N/A'),
-        email: formatValue(user.email, 'N/A'),
-        phone: formatValue(user.phone_number, 'N/A'),
-        status: user.is_active ? 'active' : 'inactive',
-        joinedDate: formatDate(user.created_at) || 'N/A',
-      }));
-
-      setUsers(transformedUsers);
-      setTotalItems(data.total || transformedUsers.length);
-      setTotalPages(Math.max(1, Math.ceil(data.total / itemsPerPage)));
-      
-    } catch (error) {
-      logger.error('Error fetching users:', error);
-      setError(error instanceof Error ? error.message : 'Error fetching users');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="animate-pulse">
-        <div className="h-12 bg-gray-200 rounded mb-4"></div>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-16 bg-gray-100 rounded mb-2"></div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-500 p-4 rounded-lg bg-red-50">
-        {error}
-      </div>
-    );
-  }
+  const hasMore = users.length === PAGE_SIZE;
 
   return (
-    <div className="space-y-4">
-      {/* Local Search */}
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Search in table..."
-          value={localSearch}
-          onChange={(e) => setLocalSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-indigo-500"
-        />
-        <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+    <section className="glass-card overflow-hidden rounded-xl">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:px-4">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-gray-900">Directory</h2>
+          <p className="truncate text-xs text-gray-500">Filter the current page</p>
+        </div>
+        {loading && <span className="shrink-0 text-xs font-medium text-indigo-600">Loading…</span>}
       </div>
 
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead>
-          <tr className="border-b border-gray-200">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Joined</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {filteredUsers.map((user) => (
-            <tr
-              key={user.id}
-              onClick={() => onUserSelect(user)}
-              className="hover:bg-gray-50 cursor-pointer"
-            >
-              <td className="px-4 py-3 text-sm text-gray-900">{String(user.id)}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{String(user.name)}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{String(user.email)}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{String(user.phone)}</td>
-              <td className="px-4 py-3 text-sm">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                  {String(user.status)}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-500">{String(user.joinedDate)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Show "No results found" when filtered results are empty */}
-      {filteredUsers.length === 0 && !loading && (
-        <div className="text-center py-4 text-gray-500">
-          No results found
+      <div className="px-3 py-3 sm:px-4">
+        <label htmlFor="user-filter" className="sr-only">
+          Filter users on this page
+        </label>
+        <div className="relative">
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            id="user-filter"
+            type="search"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            placeholder="Filter this page by name, email, or phone"
+            autoComplete="off"
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
         </div>
+        {error && (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+
+      {loading && users.length === 0 && !error && (
+        <ul className="divide-y divide-gray-100 border-t border-gray-100" aria-hidden>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <li key={index} className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+              <span className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-gray-100" />
+              <span className="min-w-0 flex-1 space-y-1.5">
+                <span className="block h-3.5 w-2/5 animate-pulse rounded bg-gray-100" />
+                <span className="block h-3 w-3/5 animate-pulse rounded bg-gray-100" />
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-        <div className="flex items-center">
-          <p className="text-sm text-gray-700">
-            Page {currentPage} of {totalPages} · 
-            <span className="text-gray-500 ml-1">
-              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
-            </span>
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
+      {!loading && !error && filteredUsers.length === 0 && (
+        <p className="border-t border-gray-100 px-4 py-8 text-center text-sm text-gray-500">
+          {localSearch.trim() ? 'No users on this page match that filter.' : 'No users found.'}
+        </p>
+      )}
+
+      {filteredUsers.length > 0 && (
+        <ul
+          className={`divide-y divide-gray-100 border-t border-gray-100 ${loading ? 'opacity-60' : ''}`}
+          aria-busy={loading}
+        >
+          {filteredUsers.map((user) => {
+            const selected = user.id === selectedId;
+            return (
+              <li key={user.id}>
+                <button
+                  type="button"
+                  onClick={() => onUserSelect(user)}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:bg-indigo-50 sm:px-4 ${
+                    selected ? 'bg-indigo-50' : 'hover:bg-indigo-50/60'
+                  }`}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-[11px] font-semibold text-indigo-700">
+                    {initials(user.name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium text-gray-900">{user.name}</span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          user.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {user.status}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-gray-500">
+                      {user.email}
+                      {' · '}
+                      {user.phone}
+                      {' · '}
+                      {user.joinedDate}
+                    </span>
+                  </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-gray-300" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {!error && (hasMore || currentPage > 1) && (
+        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-3 py-2 sm:px-4">
           <button
-            onClick={handlePrevPage}
-            disabled={currentPage <= 1}
-            className="p-2 rounded-md border disabled:opacity-50 transition-colors"
-            aria-label="Previous page"
+            type="button"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage <= 1 || loading}
+            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronLeftIcon className="h-5 w-5" />
+            Previous
           </button>
+          <span className="text-xs text-gray-500">Page {currentPage}</span>
           <button
-            onClick={handleNextPage}
-            disabled={false}
-            className="p-2 rounded-md border disabled:opacity-50 transition-colors"
-            aria-label="Next page"
+            type="button"
+            onClick={() => setCurrentPage((page) => page + 1)}
+            disabled={!hasMore || loading}
+            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronRightIcon className="h-5 w-5" />
+            Next
           </button>
         </div>
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

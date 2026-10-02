@@ -113,51 +113,48 @@ export default function VendorPayoutBulkUpdate() {
   };
 
   return (
-    <div className="glass-card p-4 sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600" />
-          Vendor payout status
+    <div className="glass-card rounded-xl p-4">
+      <div className="mb-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <BanknotesIcon className="h-4 w-4 text-indigo-600" />
+          Payout status
         </h2>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          Paste payout IDs (one per line), choose COMPLETED, FAILED, or PROCESSING, then submit.
+        <p className="mt-0.5 text-xs text-gray-500">
+          Paste payout IDs, one per line, then mark them completed or failed.
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col gap-2">
+        <div className="min-w-0">
           <label htmlFor="payout-paste" className="sr-only">
             Payout IDs
           </label>
           <textarea
             id="payout-paste"
-            rows={5}
-            placeholder={'vpay_bay21r483d\nvpay_r1l7fk2x33\n...'}
+            rows={3}
+            placeholder={'vpay_bay21r483d\nvpay_r1l7fk2x33'}
             value={pasteInput}
             onChange={(e) => setPasteInput(e.target.value)}
-            className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm sm:text-base placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
         </div>
-        <div className="flex sm:flex-col sm:justify-start shrink-0">
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Add
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto sm:self-start"
+        >
+          Add
+        </button>
       </div>
 
-    
-      <div className="mt-4 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="mt-3 flex flex-col gap-3">
         <div className="flex flex-wrap gap-2 min-w-0 flex-1">
           {payoutIds.map((id) => (
             <span
               key={id}
               className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md bg-gray-100 text-xs sm:text-sm text-gray-800 font-mono border border-gray-200"
             >
-              <span className="truncate max-w-[200px] sm:max-w-none">{id}</span>
+              <span className="max-w-[11rem] truncate sm:max-w-[16rem]">{id}</span>
               <button
                 type="button"
                 onClick={() => removeId(id)}
