@@ -1,10 +1,12 @@
 'use client';
-import { Fragment, useState } from 'react';
+
+import { Fragment, useCallback, useRef, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { BuildingStorefrontIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '@/config';
 import { axiosFormClient } from '../../../AxiosClient';
 import { getApiErrorDetail } from '@/utils/apiError';
+import { suggestionListHovered, usePlaceAutocomplete, type SelectedPlace } from '@/hooks/usePlaceAutocomplete';
 
 interface AddParentVendorModalProps {
   isOpen: boolean;
@@ -27,6 +29,9 @@ const INITIAL_FORM = {
   longitude: '',
 };
 
+const inputClass =
+  'block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0 transition-colors sm:px-4 sm:py-2.5';
+
 export default function AddParentVendorModal({
   isOpen,
   onClose,
@@ -37,10 +42,28 @@ export default function AddParentVendorModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+
+  const applyPlace = useCallback((place: SelectedPlace) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: place.address,
+      address_url: place.addressUrl,
+      latitude: String(place.latitude),
+      longitude: String(place.longitude),
+    }));
+    setError(null);
+  }, []);
+
+  const { ready: placesReady, error: placesError } = usePlaceAutocomplete(addressRef, isOpen, applyPlace);
 
   const updateField = (key: keyof typeof INITIAL_FORM, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearPlace = () => {
+    setFormData((prev) => ({ ...prev, address: '', address_url: '', latitude: '', longitude: '' }));
+    if (addressRef.current) addressRef.current.value = '';
   };
 
   const resetForm = () => {
@@ -49,7 +72,7 @@ export default function AddParentVendorModal({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setError(null);
-    setSuccess(null);
+    if (addressRef.current) addressRef.current.value = '';
   };
 
   const handleClose = () => {
@@ -69,7 +92,6 @@ export default function AddParentVendorModal({
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       const payload = {
@@ -96,18 +118,13 @@ export default function AddParentVendorModal({
 
       const form = new FormData();
       form.append('data', JSON.stringify(payload));
-      if (file) {
-        form.append('file', file);
-      }
+      if (file) form.append('file', file);
 
       const url = buildApiUrl('/v1/superuser/vendor/parent/add');
-      const response = await axiosFormClient.post(url, form);
-      setSuccess(response.data?.message || 'Parent vendor created successfully');
+      await axiosFormClient.post(url, form);
+      resetForm();
       onSuccess?.();
-      setTimeout(() => {
-        resetForm();
-        onClose();
-      }, 800);
+      onClose();
     } catch (err: unknown) {
       setError(getApiErrorDetail(err, err instanceof Error ? err.message : 'Failed to create parent vendor'));
     } finally {
@@ -117,208 +134,250 @@ export default function AddParentVendorModal({
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={handleClose}>
+      <Dialog
+        as="div"
+        className="relative z-50"
+        onClose={() => {
+          if (suggestionListHovered()) return;
+          handleClose();
+        }}
+      >
         <Transition.Child
           as={Fragment}
-          enter="ease-out duration-200"
+          enter="ease-out duration-300"
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="ease-in duration-150"
+          leave="ease-in duration-200"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/40" />
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-6">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <Transition.Child
               as={Fragment}
-              enter="ease-out duration-200"
+              enter="ease-out duration-300"
               enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-150"
+              leave="ease-in duration-200"
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-xl transition-all">
-                <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#5F22D9]/10">
-                      <BuildingStorefrontIcon className="h-5 w-5 text-[#5F22D9]" />
-                    </div>
-                    <div>
-                      <Dialog.Title className="text-lg font-semibold text-gray-900">
-                        Add parent vendor
-                      </Dialog.Title>
-                      <p className="text-sm text-gray-500">
-                        Create a brand headquarters account with optional logo
-                      </p>
-                    </div>
-                  </div>
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-4 text-left shadow-lg transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8 md:pt-8">
+                <div className="absolute right-0 top-0 pr-4 pt-4 sm:pr-6 sm:pt-6">
                   <button
                     type="button"
+                    className="rounded-lg text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
                     onClick={handleClose}
-                    className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                   >
+                    <span className="sr-only">Close</span>
                     <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto px-5 py-5 sm:px-6 space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Legal / brand name" required>
-                      <input
-                        required
-                        value={formData.legal_name}
-                        onChange={(e) => updateField('legal_name', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Contact person" required>
-                      <input
-                        required
-                        value={formData.contact_person}
-                        onChange={(e) => updateField('contact_person', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Username" required>
-                      <input
-                        required
-                        value={formData.username}
-                        onChange={(e) => updateField('username', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Email" required>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => updateField('email', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Password" required>
-                      <input
-                        type="password"
-                        required
-                        value={formData.password}
-                        onChange={(e) => updateField('password', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Phone number" required>
-                      <input
-                        required
-                        value={formData.phone_number}
-                        onChange={(e) => updateField('phone_number', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="GST number" required>
-                      <input
-                        required
-                        value={formData.gst_number}
-                        onChange={(e) => updateField('gst_number', e.target.value.toUpperCase())}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="PAN number" required>
-                      <input
-                        required
-                        value={formData.pan_number}
-                        onChange={(e) => updateField('pan_number', e.target.value.toUpperCase())}
-                        className={inputClass}
-                      />
-                    </Field>
+                <div className="w-full pr-8 sm:pr-0">
+                  <div className="mb-6 sm:mb-8">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-gray-900 sm:text-xl sm:leading-7"
+                    >
+                      Create parent vendor
+                    </Dialog.Title>
+                    <p className="mt-1.5 text-xs text-gray-500 sm:text-sm">
+                      Fill in the brand headquarters account. Logo is optional.
+                    </p>
                   </div>
 
-                  <Field label="Address">
-                    <textarea
-                      rows={2}
-                      value={formData.address}
-                      onChange={(e) => updateField('address', e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Field label="Maps URL">
-                      <input
-                        value={formData.address_url}
-                        onChange={(e) => updateField('address_url', e.target.value)}
-                        className={inputClass}
-                      />
-                    </Field>
-                    <Field label="Latitude">
-                      <input
-                        value={formData.latitude}
-                        onChange={(e) => updateField('latitude', e.target.value)}
-                        className={inputClass}
-                        placeholder="12.9716"
-                      />
-                    </Field>
-                    <Field label="Longitude">
-                      <input
-                        value={formData.longitude}
-                        onChange={(e) => updateField('longitude', e.target.value)}
-                        className={inputClass}
-                        placeholder="77.5946"
-                      />
-                    </Field>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Brand logo
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      <label className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 hover:border-[#5F22D9]/40 hover:bg-[#5F22D9]/5 transition-colors">
-                        <PhotoIcon className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-sm text-gray-600">
-                          {file ? file.name : 'Click to upload logo (optional)'}
-                        </span>
-                        <span className="text-xs text-gray-400 mt-1">JPEG/PNG, max ~500KB</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/jpg"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </label>
-                      {previewUrl && (
-                        <img
-                          src={previewUrl}
-                          alt="Logo preview"
-                          className="h-24 w-24 rounded-xl object-cover border border-gray-200"
-                        />
-                      )}
+                  {error && (
+                    <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 sm:mb-6 sm:p-4">
+                      <h3 className="text-xs font-medium text-red-800 sm:text-sm">Error</h3>
+                      <p className="mt-1 text-xs text-red-700 sm:text-sm">{error}</p>
                     </div>
-                  </div>
+                  )}
 
-                  {error && <p className="text-sm text-red-500">{error}</p>}
-                  {success && <p className="text-sm text-green-600">{success}</p>}
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                      <Field label="Legal / brand name" required>
+                        <input
+                          required
+                          value={formData.legal_name}
+                          onChange={(e) => updateField('legal_name', e.target.value)}
+                          className={inputClass}
+                          placeholder="Registered brand name"
+                        />
+                      </Field>
+                      <Field label="Contact person" required>
+                        <input
+                          required
+                          value={formData.contact_person}
+                          onChange={(e) => updateField('contact_person', e.target.value)}
+                          className={inputClass}
+                          placeholder="Primary contact"
+                        />
+                      </Field>
+                    </div>
 
-                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      disabled={loading}
-                      className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-[#5F22D9] hover:bg-[#4f1cb8] disabled:opacity-50"
-                    >
-                      {loading ? 'Creating…' : 'Create parent vendor'}
-                    </button>
-                  </div>
-                </form>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                      <Field label="Username" required>
+                        <input
+                          required
+                          value={formData.username}
+                          onChange={(e) => updateField('username', e.target.value)}
+                          className={inputClass}
+                          placeholder="Login username"
+                        />
+                      </Field>
+                      <Field label="Email" required>
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => updateField('email', e.target.value)}
+                          className={inputClass}
+                          placeholder="name@brand.com"
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                      <Field label="Password" required>
+                        <input
+                          type="password"
+                          required
+                          value={formData.password}
+                          onChange={(e) => updateField('password', e.target.value)}
+                          className={inputClass}
+                          placeholder="Account password"
+                        />
+                      </Field>
+                      <Field label="Phone number" required>
+                        <input
+                          required
+                          value={formData.phone_number}
+                          onChange={(e) => updateField('phone_number', e.target.value)}
+                          className={inputClass}
+                          placeholder="10-digit phone"
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                      <Field label="GST number" required>
+                        <input
+                          required
+                          value={formData.gst_number}
+                          onChange={(e) => updateField('gst_number', e.target.value.toUpperCase())}
+                          className={inputClass}
+                          placeholder="GSTIN"
+                        />
+                      </Field>
+                      <Field label="PAN number" required>
+                        <input
+                          required
+                          value={formData.pan_number}
+                          onChange={(e) => updateField('pan_number', e.target.value.toUpperCase())}
+                          className={inputClass}
+                          placeholder="PAN"
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Address" optional>
+                      <input
+                        ref={addressRef}
+                        type="text"
+                        className={inputClass}
+                        placeholder={placesReady ? 'Search a place in India' : 'Loading address search…'}
+                        disabled={!placesReady}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.preventDefault();
+                        }}
+                      />
+                      {placesError && <p className="mt-1.5 text-xs text-red-600">{placesError}</p>}
+                      {formData.latitude && formData.longitude ? (
+                        <div className="mt-2 flex items-start justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2">
+                          <p className="min-w-0 text-xs text-gray-500">
+                            <span className="block truncate text-sm text-gray-900">{formData.address}</span>
+                            {formData.latitude}, {formData.longitude}
+                            {formData.address_url && (
+                              <>
+                                {' · '}
+                                <a
+                                  href={formData.address_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-indigo-600 hover:underline"
+                                >
+                                  Open map
+                                </a>
+                              </>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={clearPlace}
+                            className="shrink-0 text-xs font-medium text-gray-500 hover:text-gray-800"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-gray-500">
+                          Pick a suggestion to set the address, map link, and coordinates.
+                        </p>
+                      )}
+                    </Field>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm">
+                        Brand logo
+                        <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span>
+                      </label>
+                      <div className="flex flex-col items-start gap-4 sm:flex-row">
+                        <label className="flex w-full flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 transition-colors hover:border-gray-400 hover:bg-gray-100">
+                          <PhotoIcon className="mb-2 h-8 w-8 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {file ? file.name : 'Click to upload logo'}
+                          </span>
+                          <span className="mt-1 text-xs text-gray-400">JPEG or PNG, max 500KB</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/jpg"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                        {previewUrl && (
+                          <img
+                            src={previewUrl}
+                            alt="Logo preview"
+                            className="h-24 w-24 rounded-lg border border-gray-200 object-cover"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        className="inline-flex w-full justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-0 sm:w-auto sm:px-5"
+                        onClick={handleClose}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-5"
+                      >
+                        {loading ? 'Creating...' : 'Create parent vendor'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -328,23 +387,23 @@ export default function AddParentVendorModal({
   );
 }
 
-const inputClass =
-  'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5F22D9]/30 focus:border-[#5F22D9]';
-
 function Field({
   label,
   required,
+  optional,
   children,
 }: {
   label: string;
   required?: boolean;
+  optional?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      <label className="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm">
         {label}
         {required ? <span className="text-red-500"> *</span> : null}
+        {optional ? <span className="ml-1 text-xs font-normal text-gray-500">(Optional)</span> : null}
       </label>
       {children}
     </div>

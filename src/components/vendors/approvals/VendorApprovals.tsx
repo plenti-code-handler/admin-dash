@@ -156,28 +156,26 @@ export default function VendorApprovals() {
   if (visibleTiles.length === 0) return null;
 
   return (
-    <div className="glass-card space-y-4 p-4 sm:p-6">
+    <div className="glass-card space-y-3 rounded-xl p-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900 sm:text-lg">Approvals</h2>
-        <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-          Open a tile to review pending requests
-        </p>
+        <h2 className="text-sm font-semibold text-gray-900">Approvals</h2>
+        <p className="mt-0.5 text-xs text-gray-500">Review pending requests</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
         {TILES.map((tile) => (
           <Can key={tile.id} permissions={permissions} permission={tile.permission}>
             <button
               type="button"
               onClick={() => openSheet(tile.id)}
-              className="flex w-full flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-200 hover:ring-2 hover:ring-indigo-100 sm:p-5"
+              className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/40"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                <tile.icon className="h-5 w-5" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <tile.icon className="h-4 w-4" />
               </span>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">{tile.title}</p>
-                <p className="mt-1 text-xs text-gray-500">{tile.description}</p>
-              </div>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-gray-900">{tile.title}</span>
+                <span className="mt-0.5 block truncate text-xs text-gray-500">{tile.description}</span>
+              </span>
             </button>
           </Can>
         ))}
