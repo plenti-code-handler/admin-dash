@@ -50,6 +50,7 @@ export default function ProfilePage() {
       setError('');
       try {
         const url = buildApiUrl('/v1/superuser/me/get');
+        console.log(url, 'url');
         const response = await axiosClient.get(url);
         setUser(mapSuperUserProfile(response.data || {}));
       } catch (err) {
