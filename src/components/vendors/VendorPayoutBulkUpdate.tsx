@@ -6,6 +6,30 @@ import axiosClient from '../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
 
+type VendorPayoutStatus = 'COMPLETED' | 'FAILED' | 'PROCESSING';
+
+const PAYOUT_STATUS_OPTIONS: {
+  value: VendorPayoutStatus;
+  activeClassName: string;
+  dotClassName: string;
+}[] = [
+  {
+    value: 'COMPLETED',
+    activeClassName: 'border-green-200 bg-green-50 text-green-800 shadow-sm',
+    dotClassName: 'bg-green-500',
+  },
+  {
+    value: 'FAILED',
+    activeClassName: 'border-red-200 bg-red-50 text-red-800 shadow-sm',
+    dotClassName: 'bg-red-500',
+  },
+  {
+    value: 'PROCESSING',
+    activeClassName: 'border-amber-200 bg-amber-50 text-amber-800 shadow-sm',
+    dotClassName: 'bg-amber-500',
+  },
+];
+
 function parsePayoutIdsFromText(text: string): string[] {
   const lines = text.split(/\r?\n/);
   const seen = new Set<string>();
@@ -22,7 +46,7 @@ function parsePayoutIdsFromText(text: string): string[] {
 export default function VendorPayoutBulkUpdate() {
   const [pasteInput, setPasteInput] = useState('');
   const [payoutIds, setPayoutIds] = useState<string[]>([]);
-  const [statusBool, setStatusBool] = useState(true);
+  const [status, setStatus] = useState<VendorPayoutStatus>('COMPLETED');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
@@ -63,12 +87,12 @@ export default function VendorPayoutBulkUpdate() {
       setFeedback(null);
 
       const url = buildApiUrl('/v1/superuser/vendor/payout/update', {
-        status: statusBool,
+        status,
       });
 
       const response = await axiosClient.patch<{
         message?: string;
-        status?: boolean;
+        status?: VendorPayoutStatus;
       }>(url, { payout_ids: payoutIds });
 
       const msg =
@@ -93,126 +117,132 @@ export default function VendorPayoutBulkUpdate() {
   };
 
   return (
-    <div className="glass-card rounded-xl p-4">
-      <div className="mb-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-          <BanknotesIcon className="h-4 w-4 text-indigo-600" />
-          Payout status
-        </h2>
-        <p className="mt-0.5 text-xs text-gray-500">
-          Paste payout IDs, one per line, then mark them completed or failed.
-        </p>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          Paste payout IDs (one per line), choose COMPLETED or FAILED, then submit.
-        </p>
+    <section className="glass-card overflow-hidden rounded-xl">
+      <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+          <BanknotesIcon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-gray-900">Vendor payout status</h2>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Paste payout IDs, one per line, then set COMPLETED, FAILED, or PROCESSING.
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <div className="min-w-0">
-          <label htmlFor="payout-paste" className="sr-only">
+      <div className="space-y-4 p-4">
+        <div className="space-y-2">
+          <label htmlFor="payout-paste" className="text-xs font-medium text-gray-700">
             Payout IDs
           </label>
           <textarea
             id="payout-paste"
-            rows={3}
+            rows={4}
             placeholder={'vpay_bay21r483d\nvpay_r1l7fk2x33'}
             value={pasteInput}
             onChange={(e) => setPasteInput(e.target.value)}
-            className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="block w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
-        </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto sm:self-start"
-        >
-          Add
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2 min-w-0 flex-1">
-          {payoutIds.map((id) => (
-            <span
-              key={id}
-              className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md bg-gray-100 text-xs sm:text-sm text-gray-800 font-mono border border-gray-200"
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
-              <span className="max-w-[11rem] truncate sm:max-w-[16rem]">{id}</span>
-              <button
-                type="button"
-                onClick={() => removeId(id)}
-                className="p-0.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-label={`Remove ${id}`}
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
-            </span>
-          ))}
+              Add
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0 lg:justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setStatusBool(true);
-              setFeedback(null);
-            }}
-            className={`inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-              statusBool
-                ? 'border-green-600 bg-green-50 text-green-800 ring-2 ring-green-200'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            COMPLETED
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusBool(false);
-              setFeedback(null);
-            }}
-            className={`inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-              !statusBool
-                ? 'border-red-600 bg-red-50 text-red-800 ring-2 ring-red-200'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            FAILED
-          </button>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50/70">
+          <div className="flex items-center justify-between gap-2 border-b border-gray-200/80 px-3 py-2">
+            <p className="text-xs font-medium text-gray-700">Selected payouts</p>
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-gray-500 ring-1 ring-gray-200">
+              {payoutIds.length}
+            </span>
+          </div>
+          {payoutIds.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-gray-400">No payout IDs added yet.</p>
+          ) : (
+            <div className="flex max-h-40 flex-wrap content-start gap-1.5 overflow-y-auto p-2.5">
+              {payoutIds.map((id) => (
+                <span
+                  key={id}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border border-gray-200 bg-white py-1 pl-2 pr-1 font-mono text-[11px] text-gray-800 shadow-sm"
+                >
+                  <span className="truncate">{id}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeId(id)}
+                    className="rounded p-0.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-label={`Remove ${id}`}
+                  >
+                    <XMarkIcon className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-gray-700">Status</p>
+          <div className="grid gap-1.5">
+            {PAYOUT_STATUS_OPTIONS.map((option) => {
+              const selected = status === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setStatus(option.value);
+                    setFeedback(null);
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    selected
+                      ? option.activeClassName
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${option.dotClassName}`} />
+                  {option.value}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={submitting || payoutIds.length === 0}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-xs sm:text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? 'Submitting…' : 'Submit'}
           </button>
         </div>
-      </div>
-      
 
-      {feedback && (
-        <div
-          className={`mt-4 rounded-md p-3 sm:p-4 ${
-            feedback.type === 'success' ? 'bg-green-50' : 'bg-red-50'
-          }`}
-        >
-          <p
-            className={`text-xs sm:text-sm font-medium ${
-              feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
+        {feedback && (
+          <div
+            className={`rounded-lg px-3 py-2.5 ${
+              feedback.type === 'success' ? 'bg-green-50 ring-1 ring-green-100' : 'bg-red-50 ring-1 ring-red-100'
             }`}
           >
-            {feedback.type === 'success' ? 'Success' : 'Error'}
-          </p>
-          <p
-            className={`mt-1 text-xs sm:text-sm break-words ${
-              feedback.type === 'success' ? 'text-green-700' : 'text-red-700'
-            }`}
-          >
-            {feedback.message}
-          </p>
-        </div>
-      )}
-    </div>
+            <p
+              className={`text-xs font-medium ${
+                feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
+              }`}
+            >
+              {feedback.type === 'success' ? 'Success' : 'Error'}
+            </p>
+            <p
+              className={`mt-0.5 break-words text-xs ${
+                feedback.type === 'success' ? 'text-green-700' : 'text-red-700'
+              }`}
+            >
+              {feedback.message}
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
