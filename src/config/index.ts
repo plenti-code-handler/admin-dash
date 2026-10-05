@@ -8,11 +8,16 @@ interface Config {
 const configs: Record<Environment, Config> = {
   development: {
     apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
-    debug: process.env.NEXT_PUBLIC_DEBUG === 'true'
+    debug: process.env.NEXT_PUBLIC_DEBUG === 'true', 
+    // protocol: process.env.NEXT_PUBLIC_API_URL?.split('://')[0] || 'https:',
+    // host: process.env.NEXT_PUBLIC_API_URL?.split('://')[1] || 'api.plenti.co.in'
+
   },
   production: {
     apiBaseUrl: 'https://api.plenti.co.in',
-    debug: false
+    debug: false, 
+    // protocol: 'https:',
+    // host: 'api.plenti.co.in'
   }
 };
 
@@ -25,13 +30,13 @@ export const buildApiUrl = (path: string, params?: Record<string, string | numbe
   const url = new URL(path, config.apiBaseUrl);
   
   // Force correct protocol and host based on environment
-  if (environment === 'production') {
-    url.protocol = 'https:';
-    url.host = 'api.plenti.co.in';
-  } else {
-    url.protocol = 'http:';
-    url.host = '127.0.0.1:8000';
-  }
+  // if (environment === 'production') {
+  //   url.protocol = 'https:';
+  //   url.host = 'api.plenti.co.in';
+  // } else {
+  //   url.protocol = 'https:';
+  //   url.host = 'api.plenti.co.in';
+  // }
   
   // Add query parameters if any
   if (params) {

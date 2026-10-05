@@ -206,7 +206,7 @@ export default function DashboardPage() {
 
 
       {/* Trend Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard title="User Trend">
           <DashboardLineChart data={userTrendData} color="#a5b4fc" />
         </ChartCard>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
         <ChartCard title="Revenue Trend" valuePrefix="₹">
           <DashboardLineChart data={revenueTrendData} color="#fde68a" valuePrefix="₹" />
         </ChartCard>
-      </div>
+      </div> */}
     </div>
   );
 }

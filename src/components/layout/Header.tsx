@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BellIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { SidebarMenuButton } from '@/components/layout/Sidebar';
 
 const TABS = ['Overview', 'Analytics', 'Reports'] as const;
 type Tab = (typeof TABS)[number];
@@ -15,6 +16,7 @@ export default function Header() {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-white px-3 sm:h-16 sm:px-6 lg:px-8">
+      <SidebarMenuButton />
       {/* Mobile: tab dropdown */}
       <div className="relative min-w-0 md:hidden">
         <select
