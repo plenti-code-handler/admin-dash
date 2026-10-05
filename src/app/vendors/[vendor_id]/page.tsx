@@ -13,6 +13,9 @@ import {
 } from '@heroicons/react/24/outline';
 import Sidebar, { SidebarMenuButton, SidebarProvider } from '@/components/layout/Sidebar';
 import ToastNotice, { type ToastState } from '@/components/common/ToastNotice';
+import { useMyPermissions } from '@/hooks/useMyPermissions';
+import { getApiErrorDetail } from '@/utils/apiError';
+import { hasPermission } from '@/utils/permissions';
 import axiosClient from '../../../../AxiosClient';
 
 interface VendorDetails {
@@ -33,6 +36,13 @@ interface VendorDetails {
   created_at: number;
   logo_url: string | null;
   backcover_url: string | null;
+  account_manager: string | null;
+  account_manager_id: string | null;
+}
+
+interface AccountManagerOption {
+  id: string;
+  name: string | null;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -112,6 +122,11 @@ export default function VendorDetailsPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [managers, setManagers] = useState<AccountManagerOption[]>([]);
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [savingManager, setSavingManager] = useState(false);
+  const { permissions } = useMyPermissions();
+  const canAssign = hasPermission(permissions, 'vendors:assign');
 
   const dismissToast = useCallback(() => setToast(null), []);
 
@@ -132,6 +147,29 @@ export default function VendorDetailsPage() {
     };
     if (vendor_id) fetchVendor();
   }, [vendor_id, refreshKey]);
+
+  useEffect(() => {
+    setSelectedManagerId(vendor?.account_manager_id || '');
+  }, [vendor?.account_manager_id]);
+
+  useEffect(() => {
+    if (!canAssign) return;
+    let cancelled = false;
+    const loadManagers = async () => {
+      try {
+        const response = await axiosClient.get(buildApiUrl('/v1/superuser/vendor/account-managers'));
+        if (!cancelled) {
+          setManagers(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        logger.error('Error loading account managers:', err);
+      }
+    };
+    loadManagers();
+    return () => {
+      cancelled = true;
+    };
+  }, [canAssign]);
 
   const handleApproveVendor = async () => {
     if (!vendor) return;
@@ -172,6 +210,37 @@ export default function VendorDetailsPage() {
     } finally {
       setDeactivating(false);
     }
+  };
+
+  const saveAccountManager = async (accountManagerId: string | null) => {
+    try {
+      setSavingManager(true);
+      const response = await axiosClient.patch(buildApiUrl('/v1/superuser/vendor/account-manager'), {
+        vendor_id,
+        account_manager_id: accountManagerId,
+      });
+      setRefreshKey((k) => k + 1);
+      setToast({
+        message: response.data?.message || (accountManagerId ? 'Account manager assigned' : 'Account manager removed'),
+        variant: 'success',
+      });
+    } catch (err) {
+      logger.error('Error updating account manager:', err);
+      setToast({ message: getApiErrorDetail(err, 'Failed to update account manager'), variant: 'error' });
+    } finally {
+      setSavingManager(false);
+    }
+  };
+
+  const handleAssignManager = () => {
+    if (!selectedManagerId || selectedManagerId === vendor?.account_manager_id) return;
+    saveAccountManager(selectedManagerId);
+  };
+
+  const handleRemoveManager = () => {
+    if (!vendor?.account_manager_id) return;
+    if (!confirm('Remove the account manager from this vendor?')) return;
+    saveAccountManager(null);
   };
 
   const copyValue = async (value: string, key: string, label: string) => {
@@ -382,6 +451,21 @@ export default function VendorDetailsPage() {
                     </div>
                   </Field>
                   <Field label="Created">{formatDate(vendor.created_at)}</Field>
+                  <Field label="Account manager">
+                    {canAssign ? (
+                      <AccountManagerControl
+                        vendor={vendor}
+                        managers={managers}
+                        selectedManagerId={selectedManagerId}
+                        saving={savingManager}
+                        onSelect={setSelectedManagerId}
+                        onAssign={handleAssignManager}
+                        onRemove={handleRemoveManager}
+                      />
+                    ) : (
+                      vendor.account_manager || '—'
+                    )}
+                  </Field>
                 </div>
               </Section>
 
@@ -427,6 +511,69 @@ export default function VendorDetailsPage() {
       <ToastNotice toast={toast} onDismiss={dismissToast} />
     </div>
     </SidebarProvider>
+  );
+}
+
+function AccountManagerControl({
+  vendor,
+  managers,
+  selectedManagerId,
+  saving,
+  onSelect,
+  onAssign,
+  onRemove,
+}: {
+  vendor: VendorDetails;
+  managers: AccountManagerOption[];
+  selectedManagerId: string;
+  saving: boolean;
+  onSelect: (id: string) => void;
+  onAssign: () => void;
+  onRemove: () => void;
+}) {
+  const options = [...managers];
+  if (vendor.account_manager_id && !options.some((manager) => manager.id === vendor.account_manager_id)) {
+    options.unshift({
+      id: vendor.account_manager_id,
+      name: vendor.account_manager,
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={selectedManagerId}
+        onChange={(event) => onSelect(event.target.value)}
+        disabled={saving}
+        aria-label="Account manager"
+        className="min-w-[12rem] flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 disabled:opacity-50"
+      >
+        <option value="">Select a manager</option>
+        {options.map((manager) => (
+          <option key={manager.id} value={manager.id}>
+            {manager.name || manager.id}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={onAssign}
+        disabled={saving || !selectedManagerId || selectedManagerId === vendor.account_manager_id}
+        className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {saving ? 'Saving...' : 'Assign'}
+      </button>
+      {vendor.account_manager_id && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={saving}
+          className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+        >
+          Remove
+        </button>
+      )}
+    </div>
   );
 }
 
