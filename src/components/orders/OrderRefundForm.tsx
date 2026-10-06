@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { REFUND_MULTIPLIERS } from '@/constants/refund';
 import { initiateOrderRefund } from '@/services/orderService';
 import { getApiErrorDetail } from '@/utils/apiError';
 
@@ -23,14 +22,15 @@ export default function OrderRefundForm({
   className = '',
 }: Props) {
   const [reason, setReason] = useState('');
-  const [multiplier, setMultiplier] = useState<number | null>(null);
+  const [percentage, setPercentage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (multiplier === null) {
-      setError('Select a refund percentage.');
+    const percent = Number(percentage.trim().replace(/%$/, ''));
+    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+      setError('Enter a percentage greater than 0 and up to 100.');
       return;
     }
     const text = reason.trim();
@@ -43,13 +43,13 @@ export default function OrderRefundForm({
     try {
       await initiateOrderRefund(orderId, {
         refund_reason: text,
-        refund_multiplier: multiplier,
+        refund_multiplier: percent / 100,
       });
       if (onRefunded) {
         await onRefunded();
       }
       setReason('');
-      setMultiplier(null);
+      setPercentage('');
       onComplete?.();
     } catch (err) {
       setError(getApiErrorDetail(err, 'Refund failed'));
@@ -76,23 +76,23 @@ export default function OrderRefundForm({
         />
       </div>
       <div>
-        <span className="mb-1.5 block text-xs text-gray-600">Refund amount</span>
-        <div className="flex flex-wrap gap-2">
-          {REFUND_MULTIPLIERS.map(({ label, value }) => (
-            <button
-              key={value}
-              type="button"
-              disabled={busy || disabled}
-              onClick={() => setMultiplier(value)}
-              className={`rounded-lg border px-3 py-2 text-sm font-medium ${
-                multiplier === value
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
-                  : 'border-gray-200 text-gray-700'
-              } disabled:opacity-50`}
-            >
-              {label}
-            </button>
-          ))}
+        <label htmlFor="refund-percentage" className="mb-1 block text-xs text-gray-600">
+          Refund percentage
+        </label>
+        <div className="relative w-28">
+          <input
+            id="refund-percentage"
+            type="text"
+            inputMode="decimal"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm"
+            placeholder="e.g. 40"
+            value={percentage}
+            onChange={(e) => setPercentage(e.target.value)}
+            disabled={busy || disabled}
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-gray-500" aria-hidden="true">
+            %
+          </span>
         </div>
       </div>
       {error && (
