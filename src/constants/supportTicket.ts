@@ -1,7 +1,8 @@
 /** Customer-facing notes for resolve / update on the support ticket page. */
 export const SUPPORT_TICKET_UPDATE_TEMPLATES = [
   'Sorry for inconvenience caused, we are looking into the issue. We will revert back in 2 to 3 minutes.',
-  'We are following up with the vendor. We will revert back in 2 to 3 minutes. Thanks for your patience.',
+  'We are following up with the vendor. We will revert back in 2 to 3 minutes. Thanks for your patience.',, 
+  'Thank you for your patience. We have initiated the refund process. It may take 2 to 3 business days to reflect in your account.'
 ] as const;
 
 export const SUPPORT_TICKET_TYPES = [
