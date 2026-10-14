@@ -11,12 +11,14 @@ import {
   ClipboardDocumentIcon,
   MapPinIcon,
 } from '@heroicons/react/24/outline';
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react';
 import Sidebar, { SidebarMenuButton, SidebarProvider } from '@/components/layout/Sidebar';
 import ToastNotice, { type ToastState } from '@/components/common/ToastNotice';
 import { useMyPermissions } from '@/hooks/useMyPermissions';
 import { getApiErrorDetail } from '@/utils/apiError';
 import { hasPermission } from '@/utils/permissions';
 import axiosClient from '../../../../AxiosClient';
+import VendorPricing from '@/components/vendors/catalogue/VendorPricing';
 
 interface VendorDetails {
   vendor_id: string;
@@ -127,6 +129,9 @@ export default function VendorDetailsPage() {
   const [savingManager, setSavingManager] = useState(false);
   const { permissions } = useMyPermissions();
   const canAssign = hasPermission(permissions, 'vendors:assign');
+  const canReadCatalogue = hasPermission(permissions, 'catalogue:read');
+  const [tab, setTab] = useState<'details' | 'pricing'>('details');
+  const activeTab = canReadCatalogue ? tab : 'details';
 
   const dismissToast = useCallback(() => setToast(null), []);
 
@@ -282,7 +287,7 @@ export default function VendorDetailsPage() {
         <div className="sticky top-0 z-30 flex h-14 items-center border-b border-gray-200 bg-white px-3 lg:hidden">
           <SidebarMenuButton />
         </div>
-        <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+        <div className={`mx-auto space-y-6 p-4 sm:p-6 max-w-6xl`}>
           {loading ? (
             <div className="flex h-96 items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600" />
@@ -357,6 +362,33 @@ export default function VendorDetailsPage() {
                 </div>
               </div>
 
+              <TabGroup
+                selectedIndex={canReadCatalogue && activeTab === 'pricing' ? 1 : 0}
+                onChange={(index) => setTab(index === 1 ? 'pricing' : 'details')}
+              >
+                {canReadCatalogue && (
+                  <TabList className="relative inline-grid grid-cols-2 rounded-lg bg-gray-100 p-1">
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute bottom-0 top-0 z-0 w-1/2 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04] transition-[left] duration-200 ease-out"
+                      style={{
+                        gridColumn: '1 / -1',
+                        gridRow: '1',
+                        left: activeTab === 'pricing' ? '50%' : '0%',
+                      }}
+                    />
+                    {(['Details', 'Pricing'] as const).map((label) => (
+                      <Tab
+                        key={label}
+                        className="relative z-10 min-w-[5.5rem] rounded-md px-4 py-1.5 text-center text-sm font-medium text-gray-500 outline-none transition-colors duration-200 data-[focus]:ring-2 data-[focus]:ring-indigo-500/30 data-[hover]:text-gray-800 data-[selected]:text-gray-900"
+                      >
+                        {label}
+                      </Tab>
+                    ))}
+                  </TabList>
+                )}
+                <TabPanels className={canReadCatalogue ? 'mt-6' : undefined}>
+                  <TabPanel className="tab-enter space-y-6 outline-none">
               <Section title="Status">
                 <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                   <Field label="Account">
@@ -504,6 +536,14 @@ export default function VendorDetailsPage() {
                   </div>
                 )}
               </Section>
+                  </TabPanel>
+                  {canReadCatalogue && (
+                    <TabPanel className="tab-enter outline-none">
+                      <VendorPricing vendorId={vendor.vendor_id} />
+                    </TabPanel>
+                  )}
+                </TabPanels>
+              </TabGroup>
             </>
           )}
         </div>

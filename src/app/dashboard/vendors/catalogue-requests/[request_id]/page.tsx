@@ -1,26 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import axiosClient from '../../../../../../AxiosClient';
 import { buildApiUrl } from '@/config';
 import { logger } from '@/utils/logger';
-
-interface PricingEntry {
-  item_type: string;
-  id: string;
-  name: string | null;
-  asp: number;
-  bags: { SMALL?: number; MEDIUM?: number; LARGE?: number };
-  cuts: { SMALL?: number; MEDIUM?: number; LARGE?: number };
-  descriptions: string[] | null;
-  tcs?: boolean;
-}
-
-interface Catalogue {
-  payout: { tier: string; threshold: number };
-  pricing: PricingEntry[];
-}
+import CataloguePricingTable, { type Catalogue } from '@/components/vendors/catalogue/CataloguePricingTable';
 
 interface CatalogueRequest {
   request_id: string;
@@ -151,168 +136,6 @@ export default function CatalogueRequestDetailPage() {
     }
   };
 
-
-  const renderCatalogueTable = (catalogue: Catalogue | null, isRequest: boolean = false, currentCatalogue: Catalogue | null = null) => {
-    if (!catalogue?.pricing?.length) {
-      return (
-        <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
-          <p className="text-sm sm:text-base text-gray-500">
-            {isRequest ? 'No catalogue data available' : 'No current catalogue available'}
-          </p>
-        </div>
-      );
-    }
-
-    const pricing = catalogue.pricing;
-    const currentPricingMap = new Map<string, PricingEntry>();
-    if (currentCatalogue?.pricing) {
-      currentCatalogue.pricing.forEach((e) => currentPricingMap.set(`${e.item_type}:${e.id}`, e));
-    }
-
-    return (
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
-        <div className="inline-block min-w-full align-middle">
-          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className={`${isRequest ? 'bg-indigo-50' : 'bg-gray-50'}`}>
-                <tr>
-                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Item Type
-                  </th>
-                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Pricing
-                  </th>
-                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    ASP
-                  </th>
-                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Packed item
-                  </th>
-                  <th colSpan={3} className="px-2 py-3 sm:px-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
-                    Bags
-                  </th>
-                  <th colSpan={3} className="px-2 py-3 sm:px-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
-                    Cuts
-                  </th>
-                  <th className="px-3 py-3 sm:px-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
-                    Descriptions
-                  </th>
-                </tr>
-                <tr>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">S</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">M</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">L</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600 border-l-2 border-gray-300">S</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">M</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs font-medium text-gray-600">L</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {pricing.map((entry, index) => {
-                  const bags = entry.bags || {};
-                  const cuts = entry.cuts || {};
-                  const rowKey = `${entry.item_type}-${entry.id}-${index}`;
-                  const currentEntry = currentPricingMap.get(`${entry.item_type}:${entry.id}`);
-                  const isNew = isRequest && !currentEntry;
-                  const aspDelta = isRequest && currentEntry != null && currentEntry.asp !== entry.asp
-                    ? entry.asp - currentEntry.asp
-                    : null;
-
-                  const packedItem = Boolean(entry.tcs);
-                  const descriptions = Array.isArray(entry.descriptions)
-                    ? entry.descriptions.filter((d) => String(d).trim())
-                    : [];
-
-                  return (
-                    <tr key={rowKey} className={isRequest ? 'bg-indigo-50/30' : ''}>
-                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">
-                        <span className="hidden sm:inline">{entry.item_type.replace(/_/g, ' ')}</span>
-                        <span className="sm:hidden">{entry.item_type.replace(/_/g, ' ').split(' ')[0]}</span>
-                      </td>
-                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
-                          {entry.name ?? entry.id}
-                          {isNew && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-800">
-                              new
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
-                          ₹{entry.asp}
-                          {aspDelta !== null && aspDelta !== 0 && (
-                            <span
-                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                aspDelta > 0
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                              title={aspDelta > 0 ? `+₹${aspDelta} from current` : `₹${aspDelta} from current`}
-                            >
-                              {aspDelta > 0 ? (
-                                <ArrowUpIcon className="w-3 h-3 flex-shrink-0" />
-                              ) : (
-                                <ArrowDownIcon className="w-3 h-3 flex-shrink-0" />
-                              )}
-                              {aspDelta > 0 ? `+${aspDelta}` : aspDelta}
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                        {packedItem ? 'true' : 'false'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center border-l-2 border-gray-200 whitespace-nowrap">
-                        ₹{bags.SMALL ?? '–'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{bags.MEDIUM ?? '–'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{bags.LARGE ?? '–'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center border-l-2 border-gray-200 whitespace-nowrap">
-                        ₹{cuts.SMALL ?? '–'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{cuts.MEDIUM ?? '–'}
-                      </td>
-                      <td className="px-2 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 text-center whitespace-nowrap">
-                        ₹{cuts.LARGE ?? '–'}
-                      </td>
-                      <td className="px-3 py-3 sm:px-4 text-xs sm:text-sm text-gray-900 border-l-2 border-gray-200 min-w-[140px]">
-                        {descriptions.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {descriptions.map((text, descIndex) => (
-                              <span
-                                key={`${rowKey}-desc-${descIndex}`}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[10px] sm:text-xs"
-                              >
-                                {text}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">–</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -517,14 +340,18 @@ export default function CatalogueRequestDetailPage() {
                 NEW REQUEST
               </span>
             </div>
-            {renderCatalogueTable(request.request_catalogue, true, request.current_catalogue)}
+            <CataloguePricingTable
+              catalogue={request.request_catalogue}
+              isRequest
+              currentCatalogue={request.current_catalogue}
+            />
           </div>
 
           {/* Current Catalogue */}
           {hasCurrentCatalogue && (
             <div className="glass-card p-4 sm:p-6">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Current Catalogue</h2>
-              {renderCatalogueTable(request.current_catalogue, false)}
+              <CataloguePricingTable catalogue={request.current_catalogue} />
             </div>
           )}
         </div>
