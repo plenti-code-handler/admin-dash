@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { initiateOrderRefund } from '@/services/orderService';
+import { initiateOrderRefund, type RefundMethod } from '@/services/orderService';
 import { getApiErrorDetail } from '@/utils/apiError';
 
 type Props = {
   orderId: string;
+  refundMethod?: RefundMethod;
   disabled?: boolean;
   /** Runs after the refund API succeeds. */
   onRefunded?: () => void | Promise<void>;
@@ -16,6 +17,7 @@ type Props = {
 
 export default function OrderRefundForm({
   orderId,
+  refundMethod = 'cash',
   disabled = false,
   onRefunded,
   onComplete,
@@ -44,6 +46,7 @@ export default function OrderRefundForm({
       await initiateOrderRefund(orderId, {
         refund_reason: text,
         refund_multiplier: percent / 100,
+        refund_method: refundMethod,
       });
       if (onRefunded) {
         await onRefunded();
