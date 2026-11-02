@@ -23,6 +23,7 @@ import VendorPricing from '@/components/vendors/catalogue/VendorPricing';
 interface VendorDetails {
   vendor_id: string;
   vendor_name: string;
+  username: string | null;
   email: string;
   phone_number: string;
   vendor_type: string;
@@ -419,7 +420,12 @@ export default function VendorDetailsPage() {
               </Section>
 
               <Section title="Contact">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <Field label="Username">
+                    <div className="flex items-center gap-2">
+                      <p className="break-all font-mono text-xs sm:text-sm">{vendor.username}</p>
+                    </div>
+                  </Field>
                   <Field label="Email">
                     <div className="flex items-center gap-2">
                       <a href={`mailto:${vendor.email}`} className="break-all text-indigo-600 hover:underline">

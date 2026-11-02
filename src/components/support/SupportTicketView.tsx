@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/useToast';
 
 type UpdateAction = 'resolve' | 'update';
 type ResolutionType = 'coupon' | 'refund';
+type RefundMethod = 'cash' | 'coins';
 
 type Props = {
   checkoutId: string;
@@ -73,6 +74,7 @@ export default function SupportTicketView({ checkoutId }: Props) {
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [resolutionType, setResolutionType] = useState<ResolutionType>('refund');
+  const [refundMethod, setRefundMethod] = useState<RefundMethod>('cash');
   const { toast, dismiss, showSuccess, showError } = useToast();
 
   const load = useCallback(
@@ -260,11 +262,43 @@ export default function SupportTicketView({ checkoutId }: Props) {
               </p>
             )}
 
+            {resolutionType === 'refund' && (
+              <div>
+                <span className="mb-1.5 block text-xs text-gray-600">Refund as</span>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { id: 'cash' as const, label: 'Cash' },
+                      { id: 'coins' as const, label: 'Coins' },
+                    ] as const
+                  ).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setRefundMethod(id)}
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                        refundMethod === id
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
+                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {resolutionType === 'refund' && ticket.order_id && (
               <OrderRefundForm
                 orderId={ticket.order_id}
+                refundMethod={refundMethod}
                 onRefunded={async () => {
-                  showSuccess('Refund initiated.');
+                  showSuccess(
+                    refundMethod === 'coins'
+                      ? 'Coin refund initiated.'
+                      : 'Cash refund initiated.'
+                  );
                   await load(true);
                 }}
               />

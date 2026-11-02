@@ -19,6 +19,7 @@ import {
   TicketIcon,
   UsersIcon,
   XMarkIcon,
+  CurrencyRupeeIcon,
 } from '@heroicons/react/24/outline';
 import { hasModuleAccess } from '@/utils/permissions';
 import { useMyPermissions } from '@/hooks/useMyPermissions';
@@ -45,6 +46,7 @@ const menuItems: MenuItem[] = [
   },
   { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBagIcon, module: 'orders' },
   { name: 'Coupons', href: '/dashboard/coupons', icon: TicketIcon, module: 'coupons' },
+  { name: 'Coins', href: '/dashboard/coins', icon: CurrencyRupeeIcon, module: 'coins' },
 ];
 
 type SidebarContextValue = {

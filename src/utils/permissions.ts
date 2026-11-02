@@ -82,6 +82,11 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     ],
   },
   {
+    key: 'coins',
+    label: 'Coins',
+    actions: [{ key: 'issue', label: 'Issue' }],
+  },
+  {
     key: 'coupons',
     label: 'Coupons',
     actions: [
