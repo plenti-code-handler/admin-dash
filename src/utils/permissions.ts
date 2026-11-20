@@ -72,6 +72,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
       { key: 'assign', label: 'Assign' },
       { key: 'bank_account', label: 'Bank Account' },
       { key: 'payout', label: 'Payout' },
+      { key: 'login', label: 'Login' },
     ],
   },
   {

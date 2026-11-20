@@ -126,6 +126,8 @@ export default function VendorDetailsPage() {
   const [deactivating, setDeactivating] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [issuingCode, setIssuingCode] = useState(false);
+  const [loginCode, setLoginCode] = useState<{ otp: string; expires_at: number } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
@@ -134,6 +136,7 @@ export default function VendorDetailsPage() {
   const [savingManager, setSavingManager] = useState(false);
   const { permissions } = useMyPermissions();
   const canAssign = hasPermission(permissions, 'vendors:assign');
+  const canWrite = hasPermission(permissions, 'vendors:write');
   const canReadCatalogue = hasPermission(permissions, 'catalogue:read');
   const [tab, setTab] = useState<'details' | 'pricing'>('details');
   const activeTab = canReadCatalogue ? tab : 'details';
@@ -219,6 +222,26 @@ export default function VendorDetailsPage() {
       setToast({ message: 'Failed to deactivate vendor', variant: 'error' });
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  const handleIssueLoginCode = async () => {
+    if (!vendor_id) return;
+    try {
+      setIssuingCode(true);
+      const url = buildApiUrl('/v1/superuser/vendor/internal-login-otp', {
+        vendor_id: vendor_id as string,
+      });
+      const response = await axiosClient.post(url);
+      setLoginCode({
+        otp: response.data.otp,
+        expires_at: response.data.expires_at,
+      });
+    } catch (err) {
+      logger.error('Error issuing internal login code:', err);
+      setToast({ message: getApiErrorDetail(err, 'Failed to create login code'), variant: 'error' });
+    } finally {
+      setIssuingCode(false);
     }
   };
 
@@ -391,6 +414,16 @@ export default function VendorDetailsPage() {
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {canWrite && (
+                        <button
+                          type="button"
+                          onClick={handleIssueLoginCode}
+                          disabled={issuingCode || deleting}
+                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          {issuingCode ? 'Creating...' : 'Login code'}
+                        </button>
+                      )}
                       {!vendor.account_approved ? (
                         <button
                           onClick={handleApproveVendor}
@@ -585,6 +618,14 @@ export default function VendorDetailsPage() {
           )}
         </div>
       </div>
+      <LoginCodeDialog
+        open={!!loginCode}
+        otp={loginCode?.otp || ''}
+        expiresAt={loginCode?.expires_at}
+        copied={copied === 'login-code'}
+        onCopy={() => loginCode && copyValue(loginCode.otp, 'login-code', 'Login code')}
+        onClose={() => setLoginCode(null)}
+      />
       <DeleteAccountDialog
         open={deleteOpen}
         vendorName={vendor?.vendor_name}
@@ -595,6 +636,60 @@ export default function VendorDetailsPage() {
       <ToastNotice toast={toast} onDismiss={dismissToast} />
     </div>
     </SidebarProvider>
+  );
+}
+
+function LoginCodeDialog({
+  open,
+  otp,
+  expiresAt,
+  copied,
+  onCopy,
+  onClose,
+}: {
+  open: boolean;
+  otp: string;
+  expiresAt?: number;
+  copied: boolean;
+  onCopy: () => void;
+  onClose: () => void;
+}) {
+  const expiresLabel = expiresAt
+    ? new Date(expiresAt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    : '';
+
+  return (
+    <Dialog open={open} onClose={onClose} className="relative z-50">
+      <DialogBackdrop className="fixed inset-0 bg-black/40" />
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="flex items-start justify-between gap-3">
+            <DialogTitle className="text-base font-semibold text-gray-900">Internal login code</DialogTitle>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="Close"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-gray-600">
+            Use this once as the password. It expires at {expiresLabel} and will not register this browser for notifications.
+          </p>
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+            <span className="font-mono text-lg tracking-widest text-gray-900">{otp}</span>
+            <button
+              type="button"
+              onClick={onCopy}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
   );
 }
 
