@@ -66,6 +66,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     actions: [
       { key: 'read', label: 'Read' },
       { key: 'write', label: 'Write' },
+      { key: 'delete', label: 'Delete' },
       { key: 'create', label: 'Create' },
       { key: 'approve', label: 'Approve' },
       { key: 'assign', label: 'Assign' },
